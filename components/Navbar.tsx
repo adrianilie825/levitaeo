@@ -1,0 +1,206 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import SearchDialog from "@/components/SearchDialog";
+
+const navLinkClassName =
+  "transition-colors hover:text-[#111111] text-neutral-700";
+
+const comingSoonClassName = "text-neutral-400";
+
+type NavbarProps = {
+  isAuthenticated?: boolean;
+};
+
+export default function Navbar({ isAuthenticated = false }: NavbarProps) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDetailsElement>(null);
+
+  const closeMobileMenu = useCallback(() => {
+    if (mobileMenuRef.current) {
+      mobileMenuRef.current.open = false;
+    }
+  }, []);
+
+  const openSearch = useCallback(() => {
+    closeMobileMenu();
+    setSearchOpen(true);
+  }, [closeMobileMenu]);
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openSearch();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [openSearch]);
+
+  return (
+    <>
+      <header className="sticky top-0 z-50 border-b border-[#ECE8E2] bg-[#FAFAF8]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[#FAFAF8]/75">
+        <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-6 lg:gap-8 lg:px-10">
+          <Link
+            href="/"
+            className="shrink-0 text-[15px] font-medium tracking-[0.32em] text-[#111111] transition-opacity hover:opacity-70"
+          >
+            LEVITAEO
+          </Link>
+
+          <nav
+            className="hidden flex-1 items-center justify-center gap-10 text-[13px] font-normal tracking-[0.12em] lg:flex"
+            aria-label="Primary"
+          >
+            <Link href="/collections" className={navLinkClassName}>
+              Collections
+            </Link>
+            <Link href="/collections/originals" className={navLinkClassName}>
+              Originals
+            </Link>
+            <span className={comingSoonClassName}>Skylines</span>
+            <span className={comingSoonClassName}>Journal</span>
+            <span className={comingSoonClassName}>Membership</span>
+          </nav>
+
+          <div className="hidden items-center gap-8 text-[13px] tracking-[0.08em] text-neutral-700 lg:flex">
+            <button
+              type="button"
+              onClick={openSearch}
+              aria-label="Open search"
+              className="inline-flex items-center gap-2 transition-colors hover:text-[#111111]"
+            >
+              <span>Search</span>
+              <span className="rounded border border-[#ECE8E2] px-1.5 py-0.5 text-[10px] tracking-[0.08em] text-neutral-400">
+                ⌘K
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              title="Cart coming soon"
+              className="cursor-not-allowed text-neutral-400"
+            >
+              Cart (0)
+            </button>
+            {isAuthenticated ? (
+              <>
+                <Link href="/library" className={navLinkClassName}>
+                  My Library
+                </Link>
+                <Link href="/account" className={navLinkClassName}>
+                  Account
+                </Link>
+              </>
+            ) : (
+              <Link href="/login" className={navLinkClassName}>
+                Sign In
+              </Link>
+            )}
+          </div>
+
+          <div className="ml-auto flex items-center gap-5 lg:hidden">
+            <button
+              type="button"
+              onClick={openSearch}
+              aria-label="Open search"
+              className="text-[13px] tracking-[0.08em] text-neutral-700 transition-colors hover:text-[#111111]"
+            >
+              Search
+            </button>
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              title="Cart coming soon"
+              className="cursor-not-allowed text-neutral-400"
+            >
+              Cart (0)
+            </button>
+
+            <details ref={mobileMenuRef} className="group relative">
+              <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border border-[#ECE8E2] bg-white/60 transition hover:border-neutral-400 [&::-webkit-details-marker]:hidden">
+                <span className="sr-only">Open menu</span>
+                <svg
+                  aria-hidden
+                  className="h-4 w-4 text-[#111111]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 7h16M4 12h16M4 17h16"
+                  />
+                </svg>
+              </summary>
+
+              <div className="absolute right-0 top-[calc(100%+0.75rem)] w-[min(100vw-3rem,280px)] rounded-2xl border border-[#ECE8E2] bg-[#FAFAF8] p-6 shadow-lg shadow-black/5">
+                <nav
+                  className="flex flex-col gap-5 text-sm tracking-[0.12em] text-neutral-700"
+                  aria-label="Mobile"
+                >
+                  <Link href="/collections" className={navLinkClassName}>
+                    Collections
+                  </Link>
+                  <Link href="/collections/originals" className={navLinkClassName}>
+                    Originals
+                  </Link>
+                  <span className={comingSoonClassName}>Skylines</span>
+                  <span className={comingSoonClassName}>Journal</span>
+                  <span className={comingSoonClassName}>Membership</span>
+                  <div className="my-1 h-px bg-[#ECE8E2]" />
+                  <button
+                    type="button"
+                    onClick={openSearch}
+                    className="text-left transition-colors hover:text-[#111111]"
+                  >
+                    Search
+                  </button>
+                  {isAuthenticated ? (
+                    <>
+                      <Link
+                        href="/library"
+                        className={navLinkClassName}
+                        onClick={closeMobileMenu}
+                      >
+                        My Library
+                      </Link>
+                      <Link
+                        href="/account"
+                        className={navLinkClassName}
+                        onClick={closeMobileMenu}
+                      >
+                        Account
+                      </Link>
+                    </>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className={navLinkClassName}
+                      onClick={closeMobileMenu}
+                    >
+                      Sign In
+                    </Link>
+                  )}
+                </nav>
+              </div>
+            </details>
+          </div>
+        </div>
+      </header>
+
+      <SearchDialog open={searchOpen} onClose={closeSearch} />
+    </>
+  );
+}
