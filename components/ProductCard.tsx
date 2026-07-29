@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   formatEditionLabel,
+  formatProductPrice,
   getProductPath,
   formatProductStatus,
 } from "@/lib/products-db";
@@ -9,9 +10,15 @@ import type { Product } from "@/types/product";
 
 type ProductCardProps = {
   product: Product;
+  showPrice?: boolean;
+  showCollection?: boolean;
 };
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  showPrice = false,
+  showCollection = false,
+}: ProductCardProps) {
   const isAvailable = product.status === "available";
   const statusLabel = formatProductStatus(product.status);
   const editionLabel = formatEditionLabel(product.edition);
@@ -47,16 +54,24 @@ export default function ProductCard({ product }: ProductCardProps) {
       </h3>
 
       <p className="mt-2 text-[12px] tracking-[0.08em] text-neutral-500">
-        {editionLabel}
+        {showCollection ? product.collection : editionLabel}
       </p>
 
-      <p
-        className={`mt-3 text-[11px] uppercase tracking-[0.14em] ${
-          isAvailable ? "text-[#111111]" : "text-neutral-400"
-        }`}
-      >
-        {statusLabel}
-      </p>
+      {showPrice && isAvailable ? (
+        <p className="mt-2 text-[13px] tracking-[0.04em] text-[#111111]">
+          {formatProductPrice(product)}
+        </p>
+      ) : null}
+
+      {!showPrice ? (
+        <p
+          className={`mt-3 text-[11px] uppercase tracking-[0.14em] ${
+            isAvailable ? "text-[#111111]" : "text-neutral-400"
+          }`}
+        >
+          {statusLabel}
+        </p>
+      ) : null}
     </>
   );
 

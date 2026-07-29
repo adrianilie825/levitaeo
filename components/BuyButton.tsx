@@ -62,7 +62,7 @@ export default function BuyButton({
         onClick={handleClick}
         disabled={disabled || loading}
         aria-busy={loading}
-        className={className ?? defaultClassName}
+        className={className ? `${defaultClassName} ${className}` : defaultClassName}
       >
         {loading ? "Redirecting…" : label}
       </button>
