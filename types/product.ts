@@ -3,6 +3,7 @@ export type ProductStatus = "available" | "coming-soon";
 export type Product = {
   slug: string;
   title: string;
+  subtitle?: string;
   edition: string;
   collection: string;
   collectionSlug?: string;
@@ -16,6 +17,7 @@ export type Product = {
   status: ProductStatus;
   availabilityText: string;
   fileType: string;
+  resolution?: string;
   orientation: string;
   recommendedUse: string;
   license: string;

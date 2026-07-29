@@ -26,6 +26,13 @@ export function revalidateCatalog(options: RevalidateCatalogOptions = {}) {
     revalidatePath(`/collections/${options.collectionSlug}`);
   }
 
+  if (options.productSlug) {
+    revalidateTag(
+      `catalog-product-${options.productSlug.trim().toLowerCase()}`,
+      "max",
+    );
+  }
+
   if (options.productSlug && options.collectionSlug) {
     revalidatePath(
       `/collections/${options.collectionSlug}/${options.productSlug}`,

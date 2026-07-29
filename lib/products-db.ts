@@ -149,6 +149,7 @@ function mapDbProduct(row: DbProductRow): Product {
   return {
     slug: row.slug,
     title: row.title,
+    subtitle: row.subtitle?.trim() || undefined,
     edition: row.edition,
     collection: collectionName,
     priceCents: row.price_cents,
@@ -160,6 +161,7 @@ function mapDbProduct(row: DbProductRow): Product {
     availabilityText:
       productStatus === "available" ? "Available now" : "Coming soon",
     fileType: formatCatalogFileType(row.file_type),
+    resolution: row.resolution?.trim() || undefined,
     orientation: PRODUCT_PRESENTATION_DEFAULTS.orientation,
     recommendedUse: PRODUCT_PRESENTATION_DEFAULTS.recommendedUse,
     license: PRODUCT_PRESENTATION_DEFAULTS.license,
@@ -212,6 +214,98 @@ function getFallbackProducts(): Product[] {
 
 function getFallbackCollections(): Collection[] {
   return fallbackCollections;
+}
+
+function normalizeProductSlug(slug: string): string {
+  return slug.trim().toLowerCase();
+}
+
+async function fetchProductBySlugFromDb(
+  slug: string,
+): Promise<Product | undefined> {
+  const normalizedSlug = normalizeProductSlug(slug);
+
+  if (!normalizedSlug) {
+    return undefined;
+  }
+
+  if (!isSupabasePublicConfigured()) {
+    return getFallbackProducts().find(
+      (product) => normalizeProductSlug(product.slug) === normalizedSlug,
+    );
+  }
+
+  const supabase = createCatalogClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(
+      "id, collection_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, created_at",
+    )
+    .eq("slug", normalizedSlug)
+    .in("status", ["published", "coming_soon"])
+    .maybeSingle();
+
+  if (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error(
+        `[products-db] Failed to fetch product by slug "${normalizedSlug}":`,
+        error.message,
+      );
+    }
+
+    return getFallbackProducts().find(
+      (product) => normalizeProductSlug(product.slug) === normalizedSlug,
+    );
+  }
+
+  if (!data) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `[products-db] No published catalog product found for slug "${normalizedSlug}".`,
+      );
+    }
+
+    return getFallbackProducts().find(
+      (product) => normalizeProductSlug(product.slug) === normalizedSlug,
+    );
+  }
+
+  const { data: collectionData, error: collectionError } = await supabase
+    .from("collections")
+    .select("id, slug, name, description, sort_order, created_at")
+    .eq("id", data.collection_id)
+    .maybeSingle();
+
+  if (collectionError && process.env.NODE_ENV === "development") {
+    console.error(
+      `[products-db] Failed to fetch collection for "${normalizedSlug}":`,
+      collectionError.message,
+    );
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.info(
+      `[products-db] Loaded product "${data.title}" (${data.slug}, status=${data.status}).`,
+    );
+  }
+
+  return mapDbProduct({
+    ...(data as DbProductRow),
+    collections: (collectionData as DbCollectionRow | null) ?? null,
+  });
+}
+
+function getCachedProductBySlug(slug: string): Promise<Product | undefined> {
+  const normalizedSlug = normalizeProductSlug(slug);
+
+  return unstable_cache(
+    () => fetchProductBySlugFromDb(normalizedSlug),
+    ["catalog-product", normalizedSlug],
+    {
+      revalidate: CATALOG_REVALIDATE_SECONDS,
+      tags: [CATALOG_PRODUCTS_TAG, `catalog-product-${normalizedSlug}`],
+    },
+  )();
 }
 
 async function fetchProductsFromDb(): Promise<Product[]> {
@@ -310,8 +404,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 export async function getProductBySlug(
   slug: string,
 ): Promise<Product | undefined> {
-  const products = await getCachedProducts();
-  return products.find((product) => product.slug === slug);
+  return getCachedProductBySlug(slug);
 }
 
 export async function getProductsByCollection(
