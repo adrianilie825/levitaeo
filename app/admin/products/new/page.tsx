@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import ArtworkForm, {
-  emptyArtworkFormValues,
-} from "@/components/admin/ArtworkForm";
+import ArtworkForm from "@/components/admin/ArtworkForm";
+import { emptyArtworkFormValues } from "@/lib/admin/artwork-form-defaults";
 import { listAdminCollections } from "@/lib/admin/catalog";
 
 export const metadata: Metadata = {

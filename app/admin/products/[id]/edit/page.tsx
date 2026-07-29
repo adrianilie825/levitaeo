@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import ArtworkForm, {
-  productRowToFormValues,
-} from "@/components/admin/ArtworkForm";
+import ArtworkForm from "@/components/admin/ArtworkForm";
+import { productRowToFormValues } from "@/lib/admin/artwork-form-defaults";
 import {
   getAdminProductById,
   getProductDeliveryFileSummary,
