@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { User } from "@supabase/supabase-js";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getAuthenticatedUser, normalizeEmail } from "@/lib/auth";
 
 function getAdminEmails(): string[] {
@@ -35,7 +35,7 @@ export async function requireAdmin(): Promise<User> {
   }
 
   if (!isAdminUser(user)) {
-    notFound();
+    redirect("/account");
   }
 
   return user;
