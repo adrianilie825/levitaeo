@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useAdminToast } from "@/components/admin/AdminToastProvider";
 import {
   updateCollectionAction,
   type ActionState,
@@ -18,6 +19,8 @@ const labelClassName =
 const errorClassName = "mt-2 text-[13px] leading-6 text-neutral-600";
 
 export default function CollectionForm({ collection }: CollectionFormProps) {
+  const { showSuccess, showError } = useAdminToast();
+  const processedSuccessRef = useRef<string | null>(null);
   const boundAction = updateCollectionAction.bind(null, collection.id);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     boundAction,
@@ -25,6 +28,25 @@ export default function CollectionForm({ collection }: CollectionFormProps) {
   );
 
   const fieldErrors = state.fieldErrors ?? {};
+
+  useEffect(() => {
+    if (state.error) {
+      showError(state.error);
+    }
+  }, [state.error, showError]);
+
+  useEffect(() => {
+    if (!state.success || !state.message) {
+      return;
+    }
+
+    if (processedSuccessRef.current === state.message) {
+      return;
+    }
+
+    processedSuccessRef.current = state.message;
+    showSuccess(state.message);
+  }, [showSuccess, state.message, state.success]);
 
   return (
     <form
