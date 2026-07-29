@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import ProductForm, {
-  emptyProductFormValues,
-} from "@/components/admin/ProductForm";
+import ArtworkForm, {
+  emptyArtworkFormValues,
+} from "@/components/admin/ArtworkForm";
 import { listAdminCollections } from "@/lib/admin/catalog";
 
 export const metadata: Metadata = {
-  title: "New Product",
+  title: "New Artwork",
 };
 
 export default async function AdminNewProductPage() {
@@ -17,17 +17,18 @@ export default async function AdminNewProductPage() {
         Catalog
       </p>
       <h1 className="mt-4 text-3xl font-light tracking-[-0.02em] sm:text-4xl">
-        New product
+        New artwork
       </h1>
       <p className="mt-4 max-w-2xl text-[15px] leading-7 text-neutral-600">
-        Create a catalog entry. Price is stored in cents on the server.
+        Create a catalog entry with preview image and delivery ZIP. Price is
+        stored in cents on the server.
       </p>
 
       <div className="mt-10">
-        <ProductForm
+        <ArtworkForm
           mode="create"
           collections={collections}
-          initialValues={emptyProductFormValues(collections)}
+          initialValues={emptyArtworkFormValues(collections)}
         />
       </div>
     </div>

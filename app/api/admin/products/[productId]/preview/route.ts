@@ -1,29 +1,24 @@
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/auth";
 import {
-  clearAdminProductDownloadMetadata,
   getAdminProductById,
-  updateAdminProductDownloadMetadata,
+  updateAdminProductImageUrls,
 } from "@/lib/admin/catalog";
+import { validatePreviewFileMeta } from "@/lib/admin/preview-validation";
 import { revalidateAfterProductFileChange } from "@/lib/admin/revalidate-upload";
 import { logAdminUploadOperation } from "@/lib/admin/upload-audit";
-import { logAdminUploadWarning } from "@/lib/admin/upload-cleanup";
 import {
-  buildVersionedStorageFilename,
-  generateDownloadVersion,
-  sanitizeDownloadFilename,
-} from "@/lib/downloads/upload-validation";
-import { validateZipFileMeta } from "@/lib/admin/zip-validation";
-import {
-  buildArtworkStoragePath,
-  deleteArtworkFile,
-  isValidProductUuid,
-  uploadArtworkFile,
-} from "@/lib/storage/admin-artwork-storage";
+  buildPreviewStoragePath,
+  deletePreviewFile,
+  extractPreviewStoragePathFromUrl,
+  uploadPreviewFile,
+} from "@/lib/storage/admin-preview-storage";
+import { isValidProductUuid } from "@/lib/storage/admin-artwork-storage";
+import { generateDownloadVersion } from "@/lib/downloads/upload-validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 120;
 
 type RouteContext = {
   params: Promise<{ productId: string }>;
@@ -72,7 +67,7 @@ export async function POST(request: Request, context: RouteContext) {
   const entries = formData.getAll("file");
 
   if (entries.length !== 1) {
-    return adminJson({ error: "Upload one file at a time." }, 400);
+    return adminJson({ error: "Upload one image at a time." }, 400);
   }
 
   const uploaded = entries[0];
@@ -81,7 +76,7 @@ export async function POST(request: Request, context: RouteContext) {
     return adminJson({ error: "Invalid upload payload." }, 400);
   }
 
-  const validation = validateZipFileMeta({
+  const validation = validatePreviewFileMeta({
     name: uploaded.name,
     size: uploaded.size,
     type: uploaded.type,
@@ -91,31 +86,21 @@ export async function POST(request: Request, context: RouteContext) {
     return adminJson({ error: validation.message }, 400);
   }
 
-  const sanitizedFilename = sanitizeDownloadFilename(uploaded.name);
-
-  if (!sanitizedFilename) {
-    return adminJson({ error: "The file name could not be accepted." }, 400);
-  }
-
   const version = generateDownloadVersion();
-  const versionedFilename = buildVersionedStorageFilename(
-    sanitizedFilename,
-    version,
-  );
+  const filename = `preview-${version}.${validation.extension}`;
 
   let storagePath: string;
 
   try {
-    storagePath = buildArtworkStoragePath(productId, versionedFilename);
+    storagePath = buildPreviewStoragePath(productId, filename);
   } catch {
     return adminJson({ error: "The storage path could not be created." }, 400);
   }
 
   const buffer = Buffer.from(await uploaded.arrayBuffer());
-  const previousStoragePath = product.download_storage_path?.trim() || null;
-  const operation = previousStoragePath ? "replace" : "upload";
+  const previousPath = extractPreviewStoragePathFromUrl(product.image_url);
 
-  const uploadResult = await uploadArtworkFile({
+  const uploadResult = await uploadPreviewFile({
     storagePath,
     buffer,
     contentType: validation.mimeType,
@@ -124,7 +109,7 @@ export async function POST(request: Request, context: RouteContext) {
   if (!uploadResult.ok) {
     logAdminUploadOperation({
       productId,
-      operation,
+      operation: previousPath ? "replace" : "upload",
       outcome: "upload_failed",
       detail: uploadResult.message,
     });
@@ -133,21 +118,13 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    await updateAdminProductDownloadMetadata(productId, {
-      download_storage_path: storagePath,
-      download_filename: versionedFilename,
-      download_mime_type: validation.mimeType,
-      download_size_bytes: buffer.length,
-      download_version: version,
-    });
-  } catch {
-    await deleteArtworkFile(storagePath);
-
-    logAdminUploadOperation({
+    await updateAdminProductImageUrls(
       productId,
-      operation,
-      outcome: "metadata_update_failed",
-    });
+      uploadResult.publicUrl,
+      uploadResult.publicUrl,
+    );
+  } catch {
+    await deletePreviewFile(storagePath);
 
     return adminJson(
       { error: "The product record could not be updated after upload." },
@@ -155,16 +132,8 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  if (previousStoragePath && previousStoragePath !== storagePath) {
-    const cleanup = await deleteArtworkFile(previousStoragePath);
-
-    if (!cleanup.ok) {
-      logAdminUploadWarning({
-        productId,
-        operation,
-        detail: `Old object retained at ${previousStoragePath}`,
-      });
-    }
+  if (previousPath && previousPath !== storagePath) {
+    await deletePreviewFile(previousPath);
   }
 
   const collectionSlug = product.collections?.slug ?? "originals";
@@ -177,17 +146,15 @@ export async function POST(request: Request, context: RouteContext) {
 
   logAdminUploadOperation({
     productId,
-    operation,
+    operation: previousPath ? "replace" : "upload",
     outcome: "success",
+    detail: "preview-image",
   });
 
   return adminJson(
     {
-      configured: true,
-      filename: versionedFilename,
-      mimeType: validation.mimeType,
-      sizeBytes: buffer.length,
-      version,
+      imageUrl: uploadResult.publicUrl,
+      thumbnailUrl: uploadResult.publicUrl,
     },
     200,
   );
@@ -212,45 +179,22 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return adminJson({ error: "Product not found." }, 404);
   }
 
-  const storagePath = product.download_storage_path?.trim();
+  const storagePath = extractPreviewStoragePathFromUrl(product.image_url);
 
   if (!storagePath) {
-    return adminJson({ error: "No delivery file is configured." }, 404);
+    return adminJson({ error: "No preview image is configured." }, 404);
   }
 
   try {
-    await clearAdminProductDownloadMetadata(productId);
+    await updateAdminProductImageUrls(productId, "", "");
   } catch {
-    logAdminUploadOperation({
-      productId,
-      operation: "remove",
-      outcome: "metadata_clear_failed",
-    });
-
     return adminJson(
-      { error: "The product download metadata could not be cleared." },
+      { error: "The product preview URLs could not be cleared." },
       500,
     );
   }
 
-  const deletion = await deleteArtworkFile(storagePath);
-
-  if (!deletion.ok) {
-    logAdminUploadOperation({
-      productId,
-      operation: "remove",
-      outcome: "storage_delete_failed",
-      detail: storagePath,
-    });
-
-    return adminJson(
-      {
-        error:
-          "Download metadata was cleared, but the storage object could not be deleted. Remove it manually in Supabase Storage.",
-      },
-      500,
-    );
-  }
+  await deletePreviewFile(storagePath);
 
   const collectionSlug = product.collections?.slug ?? "originals";
 
@@ -260,11 +204,5 @@ export async function DELETE(_request: Request, context: RouteContext) {
     collectionSlug,
   });
 
-  logAdminUploadOperation({
-    productId,
-    operation: "remove",
-    outcome: "success",
-  });
-
-  return adminJson({ configured: false }, 200);
+  return adminJson({ imageUrl: "", thumbnailUrl: "" }, 200);
 }

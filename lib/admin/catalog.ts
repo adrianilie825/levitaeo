@@ -338,6 +338,57 @@ export async function listAdminCollections(): Promise<CatalogCollectionRow[]> {
   return (data ?? []) as CatalogCollectionRow[];
 }
 
+export async function updateAdminProductImageUrls(
+  id: string,
+  imageUrl: string,
+  thumbnailUrl: string,
+): Promise<CatalogProductRow> {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("products")
+    .update({
+      image_url: imageUrl,
+      thumbnail_url: thumbnailUrl,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as CatalogProductRow;
+}
+
+export async function updateAdminProductStatus(
+  id: string,
+  status: string,
+): Promise<CatalogProductRow> {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("products")
+    .update({ status })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as CatalogProductRow;
+}
+
+export async function deleteAdminProduct(id: string): Promise<void> {
+  const supabase = getAdminClient();
+  const { error } = await supabase.from("products").delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export async function updateAdminCollection(
   id: string,
   input: CollectionWriteInput,
