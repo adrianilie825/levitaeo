@@ -147,6 +147,7 @@ function mapDbProduct(row: DbProductRow): Product {
   const productStatus = mapDbStatus(row.status);
 
   return {
+    id: row.id,
     slug: row.slug,
     title: row.title,
     subtitle: row.subtitle?.trim() || undefined,

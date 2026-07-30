@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type BuyButtonProps = {
   productSlug: string;
+  loginReturnPath: string;
   disabled?: boolean;
   label?: string;
   className?: string;
@@ -14,6 +16,7 @@ const defaultClassName =
 
 export default function BuyButton({
   productSlug,
+  loginReturnPath,
   disabled = false,
   label = "Acquire Edition",
   className,
@@ -38,7 +41,17 @@ export default function BuyButton({
         body: JSON.stringify({ productSlug }),
       });
 
-      const data = (await response.json()) as { url?: string; error?: string };
+      const data = (await response.json()) as {
+        url?: string;
+        error?: string;
+        loginUrl?: string;
+      };
+
+      if (response.status === 401) {
+        const nextPath = encodeURIComponent(loginReturnPath);
+        window.location.assign(`/login?next=${nextPath}`);
+        return;
+      }
 
       if (!response.ok || !data.url) {
         setError(
@@ -72,5 +85,41 @@ export default function BuyButton({
         </p>
       ) : null}
     </div>
+  );
+}
+
+export function SignInToPurchaseLink({
+  loginReturnPath,
+  className = "",
+}: {
+  loginReturnPath: string;
+  className?: string;
+}) {
+  const href = `/login?next=${encodeURIComponent(loginReturnPath)}`;
+
+  return (
+    <Link
+      href={href}
+      className={
+        className ||
+        "inline-flex w-full items-center justify-center border border-[#111111] bg-[#111111] px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-transparent hover:text-[#111111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+      }
+    >
+      Sign in to buy
+    </Link>
+  );
+}
+
+export function ViewInLibraryLink({ className = "" }: { className?: string }) {
+  return (
+    <Link
+      href="/library"
+      className={
+        className ||
+        "inline-flex w-full items-center justify-center border border-[#111111] bg-[#111111] px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-transparent hover:text-[#111111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+      }
+    >
+      View in Library
+    </Link>
   );
 }

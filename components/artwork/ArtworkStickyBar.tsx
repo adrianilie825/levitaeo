@@ -1,17 +1,26 @@
 "use client";
 
-import BuyButton from "@/components/BuyButton";
+import BuyButton, {
+  SignInToPurchaseLink,
+  ViewInLibraryLink,
+} from "@/components/BuyButton";
 import { formatArtworkPrice } from "@/lib/products/artwork-display";
 import type { Product } from "@/types/product";
 
 type ArtworkStickyBarProps = {
-  product: Pick<Product, "slug" | "title" | "price" | "currency" | "status">;
+  product: Product;
+  productPath: string;
   canPurchase: boolean;
+  isAuthenticated: boolean;
+  isOwned: boolean;
 };
 
 export default function ArtworkStickyBar({
   product,
+  productPath,
   canPurchase,
+  isAuthenticated,
+  isOwned,
 }: ArtworkStickyBarProps) {
   const isAvailable = product.status === "available";
   const formattedPrice = formatArtworkPrice(product);
@@ -32,9 +41,17 @@ export default function ArtworkStickyBar({
           </p>
         </div>
 
-        {canPurchase ? (
+        {isOwned ? (
+          <ViewInLibraryLink className="inline-flex shrink-0 items-center justify-center border border-[#111111] bg-[#111111] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-transparent hover:text-[#111111]" />
+        ) : !isAuthenticated ? (
+          <SignInToPurchaseLink
+            loginReturnPath={productPath}
+            className="inline-flex shrink-0 items-center justify-center border border-[#111111] bg-[#111111] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-transparent hover:text-[#111111]"
+          />
+        ) : canPurchase ? (
           <BuyButton
             productSlug={product.slug}
+            loginReturnPath={productPath}
             label="Buy Now"
             className="shrink-0 px-6 py-3"
           />

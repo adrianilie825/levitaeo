@@ -1,16 +1,21 @@
 import { Suspense } from "react";
-import BuyButton from "@/components/BuyButton";
+import BuyButton, {
+  SignInToPurchaseLink,
+  ViewInLibraryLink,
+} from "@/components/BuyButton";
 import CheckoutNotice from "@/components/CheckoutNotice";
 import {
   formatArtworkPrice,
   getArtworkMetadataItems,
 } from "@/lib/products/artwork-display";
-import { formatEditionLabel } from "@/lib/products-db";
+import { formatEditionLabel, getProductPath } from "@/lib/products-db";
 import type { Product } from "@/types/product";
 
 type ArtworkPurchasePanelProps = {
   product: Product;
   canPurchase: boolean;
+  isAuthenticated: boolean;
+  isOwned: boolean;
   showCheckoutNotice?: boolean;
   className?: string;
 };
@@ -24,12 +29,15 @@ const reassuranceItems = [
 export default function ArtworkPurchasePanel({
   product,
   canPurchase,
+  isAuthenticated,
+  isOwned,
   showCheckoutNotice = true,
   className = "",
 }: ArtworkPurchasePanelProps) {
   const metadataItems = getArtworkMetadataItems(product);
   const isAvailable = product.status === "available";
   const formattedPrice = formatArtworkPrice(product);
+  const productPath = getProductPath(product);
 
   return (
     <aside className={className}>
@@ -66,9 +74,14 @@ export default function ArtworkPurchasePanel({
       ) : null}
 
       <div className="mt-8">
-        {canPurchase ? (
+        {isOwned ? (
+          <ViewInLibraryLink />
+        ) : !isAuthenticated ? (
+          <SignInToPurchaseLink loginReturnPath={productPath} />
+        ) : canPurchase ? (
           <BuyButton
             productSlug={product.slug}
+            loginReturnPath={productPath}
             label="Buy Now"
             className="w-full"
           />

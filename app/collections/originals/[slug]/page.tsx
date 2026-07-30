@@ -11,6 +11,8 @@ import NavbarWithAuth from "@/components/NavbarWithAuth";
 import Newsletter from "@/components/Newsletter";
 import { getRelatedProducts } from "@/lib/products/get-related-products";
 import { isProductPurchasable } from "@/lib/products/product-purchase";
+import { userOwnsActiveProduct } from "@/lib/purchases/ownership";
+import { getAuthenticatedUser } from "@/lib/auth";
 import {
   getProductBySlug,
   getProductPath,
@@ -71,6 +73,14 @@ export default async function OriginalsProductPage({ params }: PageProps) {
   }
 
   const canPurchase = isProductPurchasable(product);
+  const authenticatedUser = await getAuthenticatedUser();
+  const isOwned = authenticatedUser
+    ? await userOwnsActiveProduct({
+        userId: authenticatedUser.id,
+        productSlug: product.slug,
+        productId: product.id,
+      })
+    : false;
   const relatedProducts = await getRelatedProducts(product, 4);
   const structuredDescription =
     product.description?.trim() ||
@@ -99,6 +109,8 @@ export default async function OriginalsProductPage({ params }: PageProps) {
               <ArtworkPurchasePanel
                 product={product}
                 canPurchase={canPurchase}
+                isAuthenticated={Boolean(authenticatedUser)}
+                isOwned={isOwned}
               />
             </div>
           </div>
@@ -115,7 +127,13 @@ export default async function OriginalsProductPage({ params }: PageProps) {
       <Newsletter />
       <Footer />
 
-      <ArtworkStickyBar product={product} canPurchase={canPurchase} />
+      <ArtworkStickyBar
+        product={product}
+        productPath={getProductPath(product)}
+        canPurchase={canPurchase}
+        isAuthenticated={Boolean(authenticatedUser)}
+        isOwned={isOwned}
+      />
     </main>
   );
 }
