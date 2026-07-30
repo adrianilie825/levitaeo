@@ -1,6 +1,7 @@
 export type ProductStatus = "available" | "coming-soon";
 
 export type Product = {
+  id?: string;
   slug: string;
   title: string;
   subtitle?: string;

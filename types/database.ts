@@ -293,6 +293,8 @@ export type Database = {
           p_stripe_price_id: string | null;
           p_quantity: number;
           p_unit_amount: number;
+          p_user_id?: string | null;
+          p_product_id?: string | null;
         };
         Returns: FulfillmentResult[];
       };

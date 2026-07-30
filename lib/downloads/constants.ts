@@ -1,6 +1,6 @@
 export const ARTWORK_DOWNLOADS_BUCKET = "artwork-downloads";
 
-export const SIGNED_URL_EXPIRY_SECONDS = 60;
+export const SIGNED_URL_EXPIRY_SECONDS = 300;
 
 export const ELIGIBLE_ORDER_STATUSES = ["paid"] as const;
 

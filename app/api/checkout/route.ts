@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser, normalizeEmail } from "@/lib/auth";
-import { getProductBySlug } from "@/lib/products-db";
-import { getStripePriceId } from "@/lib/stripe-products";
+import { validateCheckoutProduct } from "@/lib/purchases/checkout-validation";
+import { userOwnsActiveProduct } from "@/lib/purchases/ownership";
+import { getProductPath } from "@/lib/products-db";
 import { getStripe } from "@/lib/stripe";
 import { siteConfig } from "@/lib/site";
 
@@ -17,6 +18,15 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 export async function POST(request: Request) {
+  const authenticatedUser = await getAuthenticatedUser();
+
+  if (!authenticatedUser) {
+    return NextResponse.json(
+      { error: "Sign in is required before checkout." },
+      { status: 401 },
+    );
+  }
+
   let body: CheckoutRequestBody;
 
   try {
@@ -36,45 +46,40 @@ export async function POST(request: Request) {
   }
 
   const productSlug = body.productSlug.trim();
-  const product = await getProductBySlug(productSlug);
+  const validation = await validateCheckoutProduct(productSlug);
 
-  if (!product) {
-    return NextResponse.json({ error: "Product not found." }, { status: 404 });
-  }
-
-  if (product.status !== "available") {
+  if (!validation.ok) {
     return NextResponse.json(
-      { error: "This edition is not available for purchase." },
-      { status: 400 },
+      { error: validation.error },
+      { status: validation.status },
     );
   }
 
-  if (!product.downloadable) {
-    return NextResponse.json(
-      { error: "This edition is not available for purchase." },
-      { status: 400 },
-    );
-  }
+  const { product, stripePriceId } = validation;
+  const productPath = getProductPath(product);
 
-  const stripePriceId =
-    product.stripePriceId?.trim() || getStripePriceId(product.slug);
-
-  if (!stripePriceId) {
+  if (
+    await userOwnsActiveProduct({
+      userId: authenticatedUser.id,
+      productSlug: product.slug,
+      productId: product.id,
+    })
+  ) {
     return NextResponse.json(
-      {
-        error:
-          "Checkout is not configured for this edition yet. Please try again later.",
-      },
-      { status: 503 },
+      { error: "You already own this edition. View it in My Library." },
+      { status: 409 },
     );
   }
 
   try {
     const stripe = getStripe();
-    const authenticatedUser = await getAuthenticatedUser();
+    const customerEmail = authenticatedUser.email
+      ? normalizeEmail(authenticatedUser.email)
+      : undefined;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      client_reference_id: authenticatedUser.id,
       line_items: [
         {
           price: stripePriceId,
@@ -82,25 +87,26 @@ export async function POST(request: Request) {
         },
       ],
       success_url: `${siteConfig.url}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteConfig.url}/collections/originals/${product.slug}?checkout=cancelled`,
-      customer_creation: "always",
+      cancel_url: `${siteConfig.url}${productPath}?checkout=cancelled`,
       billing_address_collection: "auto",
       allow_promotion_codes: true,
       locale: "auto",
-      ...(authenticatedUser?.email
-        ? { customer_email: normalizeEmail(authenticatedUser.email) }
-        : {}),
+      ...(customerEmail ? { customer_email: customerEmail } : {}),
       metadata: {
+        productId: product.id ?? "",
         productSlug: product.slug,
         productTitle: product.title,
         productEdition: product.edition,
         collection: product.collection,
         purchaseType: "digital-artwork",
+        supabaseUserId: authenticatedUser.id,
       },
       payment_intent_data: {
         metadata: {
+          productId: product.id ?? "",
           productSlug: product.slug,
           purchaseType: "digital-artwork",
+          supabaseUserId: authenticatedUser.id,
         },
       },
     });
@@ -109,6 +115,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Checkout could not be started. Please try again." },
         { status: 500 },
+      );
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.info(
+        `[checkout] Created session for user=${authenticatedUser.id}, product=${product.slug}.`,
       );
     }
 

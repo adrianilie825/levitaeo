@@ -74,6 +74,7 @@ type ProductQueryRow = Pick<
   | "resolution"
   | "file_type"
   | "status"
+  | "download_filename"
 >;
 
 const DEFAULT_RESOLUTION = "High resolution";
@@ -170,7 +171,7 @@ function buildLibraryArtwork(input: {
     orderStatus: order?.status ?? "paid",
     entitlementStatus: entitlement.status,
     isDownloadReady,
-    downloadFilename: null,
+    downloadFilename: product?.download_filename?.trim() || null,
     detailPath: isPublicProductStatus(product?.status)
       ? getProductCatalogPath(slug, collectionSlug)
       : null,
@@ -243,7 +244,7 @@ export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
       ? supabase
           .from("products")
           .select(
-            "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status",
+            "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status, download_filename",
           )
           .in("id", productIds)
       : Promise.resolve({ data: [], error: null }),
@@ -251,7 +252,7 @@ export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
       ? supabase
           .from("products")
           .select(
-            "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status",
+            "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status, download_filename",
           )
           .in("slug", productSlugs)
       : Promise.resolve({ data: [], error: null }),

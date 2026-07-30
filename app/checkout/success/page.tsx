@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import CheckoutSuccessStatus from "@/components/checkout/CheckoutSuccessStatus";
 import NavbarWithAuth from "@/components/NavbarWithAuth";
 import {
   formatEditionLabel,
   getProductBySlug,
+  getProductPath,
 } from "@/lib/products-db";
 import {
   getOrderSummaryByCheckoutSessionId,
 } from "@/lib/orders";
+import {
+  checkoutSessionBelongsToUser,
+  getCheckoutSessionUserId,
+} from "@/lib/purchases/ownership";
+import {
+  getAuthenticatedUser,
+  linkPurchasesToAuthenticatedUser,
+} from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
-import { getAuthenticatedUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
@@ -59,12 +68,35 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["line_items"],
     });
+    const authenticatedUser = await getAuthenticatedUser();
+    const sessionUserId = getCheckoutSessionUserId(session);
+
+    if (
+      authenticatedUser &&
+      sessionUserId &&
+      !checkoutSessionBelongsToUser(sessionUserId, authenticatedUser.id)
+    ) {
+      return (
+        <ConfirmationShell>
+          <h1 className="text-3xl font-light tracking-[-0.02em] sm:text-4xl">
+            Checkout access denied
+          </h1>
+          <p className="mt-6 text-[15px] leading-7 text-neutral-600">
+            This payment confirmation does not belong to your signed-in account.
+          </p>
+          <ActionLink href="/library">Go to My Library</ActionLink>
+        </ConfirmationShell>
+      );
+    }
 
     if (session.payment_status !== "paid") {
       const productSlug = session.metadata?.productSlug;
-      const productPath = productSlug
-        ? `/collections/originals/${productSlug}`
-        : "/collections/originals";
+      const product = productSlug ? await getProductBySlug(productSlug) : undefined;
+      const productPath = product
+        ? getProductPath(product)
+        : productSlug
+          ? `/collections/originals/${productSlug}`
+          : "/collections/originals";
 
       return (
         <ConfirmationShell>
@@ -82,6 +114,19 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
           </div>
         </ConfirmationShell>
       );
+    }
+
+    if (authenticatedUser) {
+      try {
+        await linkPurchasesToAuthenticatedUser(authenticatedUser);
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.error(
+            "[checkout-success] Purchase linking failed:",
+            error,
+          );
+        }
+      }
     }
 
     let orderSummary: Awaited<
@@ -116,7 +161,7 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
       orderSummary?.currency ?? session.currency ?? null,
     );
 
-    const title = isPersistedPaid ? "Payment confirmed" : "Payment received";
+    const title = isPersistedPaid ? "Payment successful" : "Payment received";
     const supportingCopy = isPersistedPaid
       ? "Your Levitaeo edition has been secured."
       : "We are finalising your Levitaeo edition. This usually takes only a few moments.";
@@ -124,7 +169,11 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
     const editionTitle = orderSummary?.productTitle ?? product?.title ?? null;
     const editionNumber =
       orderSummary?.productEdition ?? product?.edition ?? null;
-    const authenticatedUser = await getAuthenticatedUser();
+    const productPath = product
+      ? getProductPath(product)
+      : productSlug
+        ? `/collections/originals/${productSlug}`
+        : null;
 
     return (
       <ConfirmationShell>
@@ -138,6 +187,13 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
           {supportingCopy}
         </p>
 
+        {!isPersistedPaid ? (
+          <CheckoutSuccessStatus
+            sessionId={sessionId}
+            initialPersisted={isPersistedPaid}
+          />
+        ) : null}
+
         {persistenceUnavailable && process.env.NODE_ENV === "development" ? (
           <p className="mt-4 max-w-xl text-[13px] leading-6 text-neutral-500">
             Order persistence is not configured locally. Stripe payment
@@ -149,13 +205,13 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
         <dl className="mt-8 space-y-4 border-t border-[#ECE8E2] pt-8 text-[13px] leading-6">
           {editionTitle ? (
             <div className="grid grid-cols-[8rem_1fr] gap-4">
-              <dt className="text-neutral-500">Edition</dt>
+              <dt className="text-neutral-500">Artwork</dt>
               <dd>{editionTitle}</dd>
             </div>
           ) : null}
           {editionNumber ? (
             <div className="grid grid-cols-[8rem_1fr] gap-4">
-              <dt className="text-neutral-500">Number</dt>
+              <dt className="text-neutral-500">Edition</dt>
               <dd>{formatEditionLabel(editionNumber)}</dd>
             </div>
           ) : null}
@@ -173,44 +229,31 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
           ) : null}
         </dl>
 
-        {productSlug ? (
-          <div className="mt-8">
-            <ActionLink href={`/collections/originals/${productSlug}`}>
-              View your edition
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <ActionLink href="/library">My Library</ActionLink>
+          {productPath ? (
+            <ActionLink href={productPath} subdued>
+              Back to artwork
             </ActionLink>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
-        <section className="mt-10 border-t border-[#ECE8E2] pt-8">
-          {authenticatedUser ? (
-            <>
-              <ActionLink href="/library">View My Library</ActionLink>
-              <div className="mt-4">
-                <ActionLink href="/account" subdued>
-                  View My Account
-                </ActionLink>
-              </div>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl font-light tracking-[-0.02em]">
-                Secure your collection
-              </h2>
-              <p className="mt-4 max-w-xl text-[15px] leading-7 text-neutral-600">
-                Sign in with the same email used at checkout to connect this
-                edition to your Levitaeo account and access your library.
-              </p>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <ActionLink href="/login?next=/library">
-                  Access My Library
-                </ActionLink>
-                <ActionLink href="/login?next=/account" subdued>
-                  Access My Account
-                </ActionLink>
-              </div>
-            </>
-          )}
-        </section>
+        {!authenticatedUser ? (
+          <section className="mt-10 border-t border-[#ECE8E2] pt-8">
+            <h2 className="text-xl font-light tracking-[-0.02em]">
+              Sign in to access your library
+            </h2>
+            <p className="mt-4 max-w-xl text-[15px] leading-7 text-neutral-600">
+              Sign in with the same account used at checkout to open My Library
+              and download your edition.
+            </p>
+            <div className="mt-6">
+              <ActionLink href={`/login?next=${encodeURIComponent("/library")}`}>
+                Sign in
+              </ActionLink>
+            </div>
+          </section>
+        ) : null}
 
         <p className="mt-8 max-w-xl text-[13px] leading-6 text-neutral-500">
           Purchased editions appear in My Library with secure, short-lived

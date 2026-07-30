@@ -29,6 +29,8 @@ type NormalizedCheckoutSession = {
   stripePaymentIntentId: string | null;
   stripeCustomerId: string | null;
   customerEmail: string | null;
+  supabaseUserId: string | null;
+  productId: string | null;
   currency: string;
   amountSubtotal: number;
   amountTotal: number;
@@ -92,6 +94,8 @@ function sanitizeEventPayload(event: Stripe.Event): Record<string, unknown> {
     paymentStatus: session.payment_status ?? null,
     productSlug: session.metadata?.productSlug ?? null,
     purchaseType: session.metadata?.purchaseType ?? null,
+    supabaseUserId: session.metadata?.supabaseUserId ?? null,
+    productId: session.metadata?.productId ?? null,
   };
 }
 
@@ -138,6 +142,11 @@ export async function normalizeCheckoutSession(
   const lineItemDetails = getLineItemDetails(session);
   const purchaseType =
     session.metadata?.purchaseType?.trim() || "digital-artwork";
+  const supabaseUserId =
+    session.client_reference_id?.trim() ||
+    session.metadata?.supabaseUserId?.trim() ||
+    null;
+  const productId = session.metadata?.productId?.trim() || product.id || null;
 
   return {
     stripeCheckoutSessionId: session.id,
@@ -146,6 +155,8 @@ export async function normalizeCheckoutSession(
     customerEmail: normalizeEmail(
       session.customer_details?.email ?? session.customer_email,
     ),
+    supabaseUserId,
+    productId,
     currency: normalizeCurrency(session.currency),
     amountSubtotal: session.amount_subtotal ?? 0,
     amountTotal: session.amount_total ?? 0,
@@ -197,6 +208,8 @@ function buildFulfillmentArgs(
     p_stripe_price_id: session.stripePriceId,
     p_quantity: session.quantity,
     p_unit_amount: session.unitAmount,
+    p_user_id: session.supabaseUserId,
+    p_product_id: session.productId,
   };
 }
 

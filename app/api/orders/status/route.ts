@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import {
   checkOrderStatusRateLimit,
   getOrderStatusRateLimitKey,
 } from "@/lib/orders/rate-limit";
 import { getSanitizedOrderStatus } from "@/lib/orders";
+import {
+  checkoutSessionBelongsToUser,
+  getCheckoutSessionUserId,
+} from "@/lib/purchases/ownership";
 import { getStripe } from "@/lib/stripe";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import type { OrderStatus } from "@/types/database";
@@ -57,6 +62,19 @@ export async function GET(request: Request) {
   try {
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId.trim());
+    const authenticatedUser = await getAuthenticatedUser();
+    const sessionUserId = getCheckoutSessionUserId(session);
+
+    if (
+      authenticatedUser &&
+      sessionUserId &&
+      !checkoutSessionBelongsToUser(sessionUserId, authenticatedUser.id)
+    ) {
+      return NextResponse.json(
+        { error: "This checkout session does not belong to your account." },
+        { status: 403 },
+      );
+    }
 
     if (session.payment_status !== "paid") {
       return NextResponse.json({
