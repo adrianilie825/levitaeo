@@ -99,7 +99,6 @@ export default function ArtworkCard({ artwork }: ArtworkCardProps) {
 
           <SecureDownloadButton
             productId={artwork.productId}
-            filename={artwork.downloadFilename}
             isDownloadReady={artwork.isDownloadReady}
           />
         </div>

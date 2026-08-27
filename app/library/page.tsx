@@ -44,9 +44,17 @@ export default async function LibraryPage() {
     artworks = library?.artworks ?? [];
   } catch (error) {
     loadError = true;
-    if (process.env.NODE_ENV === "development") {
-      console.error("[library] Failed to load library:", error);
-    }
+    console.error("[library] Failed to load library:", {
+      error:
+        typeof error === "object" && error !== null && "message" in error
+          ? {
+              message: String(error.message),
+              code: "code" in error ? String(error.code) : undefined,
+              details: "details" in error ? String(error.details) : undefined,
+              hint: "hint" in error ? String(error.hint) : undefined,
+            }
+          : { message: String(error) },
+    });
   }
 
   return (
