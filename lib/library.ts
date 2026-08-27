@@ -27,7 +27,6 @@ export type LibraryArtwork = {
   orderStatus: OrderStatus;
   entitlementStatus: EntitlementStatus;
   isDownloadReady: boolean;
-  downloadFilename: string | null;
   detailPath: string | null;
 };
 
@@ -74,9 +73,10 @@ type ProductQueryRow = Pick<
   | "resolution"
   | "file_type"
   | "status"
-  | "download_filename"
 >;
 
+const LIBRARY_PRODUCT_COLUMNS =
+  "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status" as const;
 const DEFAULT_RESOLUTION = "High resolution";
 const DEFAULT_FILE_TYPE = "Digital edition";
 
@@ -171,23 +171,80 @@ function buildLibraryArtwork(input: {
     orderStatus: order?.status ?? "paid",
     entitlementStatus: entitlement.status,
     isDownloadReady,
-    downloadFilename: product?.download_filename?.trim() || null,
     detailPath: isPublicProductStatus(product?.status)
       ? getProductCatalogPath(slug, collectionSlug)
       : null,
   };
 }
 
+function logLibraryInfo(message: string, extra?: Record<string, unknown>) {
+  console.info(`[library] ${message}`, extra ?? {});
+}
+
+function logLibraryQuery(
+  queryName: string,
+  extra?: Record<string, unknown>,
+) {
+  logLibraryInfo(`Query start: ${queryName}`, extra);
+}
+
+function logLibraryQueryError(
+  queryName: string,
+  error: unknown,
+  extra?: Record<string, unknown>,
+) {
+  const normalized =
+    typeof error === "object" && error !== null
+      ? {
+          message: "message" in error ? String(error.message) : String(error),
+          code: "code" in error ? String(error.code) : undefined,
+          details: "details" in error ? String(error.details) : undefined,
+          hint: "hint" in error ? String(error.hint) : undefined,
+        }
+      : { message: String(error) };
+
+  console.error(`[library] Query failed: ${queryName}`, {
+    ...extra,
+    error: normalized,
+  });
+}
+
+function throwLoggedLibraryQueryError(
+  queryName: string,
+  error: unknown,
+  extra?: Record<string, unknown>,
+): never {
+  logLibraryQueryError(queryName, error, extra);
+  throw error;
+}
+
 export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
+  logLibraryInfo("Loading library for current user.");
+
   const supabase = await createClient();
+  logLibraryQuery("auth.getUser");
+
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
+  if (userError) {
+    logLibraryQueryError("auth.getUser", userError);
     return null;
   }
+
+  if (!user) {
+    logLibraryInfo("auth.getUser returned no authenticated user.");
+    return null;
+  }
+
+  logLibraryInfo("Authenticated user resolved.", {
+    userId: user.id,
+    emailPresent: Boolean(user.email),
+  });
+
+  logLibraryQuery("entitlements.select", { userId: user.id });
 
   const { data: entitlementRows, error: entitlementsError } = await supabase
     .from("entitlements")
@@ -197,10 +254,17 @@ export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
     .order("granted_at", { ascending: false });
 
   if (entitlementsError) {
-    throw entitlementsError;
+    throwLoggedLibraryQueryError("entitlements.select", entitlementsError, {
+      userId: user.id,
+    });
   }
 
   const entitlements = (entitlementRows ?? []) as EntitlementQueryRow[];
+
+  logLibraryInfo("entitlements.select succeeded.", {
+    userId: user.id,
+    rowCount: entitlements.length,
+  });
 
   if (entitlements.length === 0) {
     return { artworks: [] };
@@ -223,6 +287,24 @@ export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
     ),
   ];
 
+  logLibraryQuery("orders.select", {
+    userId: user.id,
+    orderIdCount: orderIds.length,
+  });
+  logLibraryQuery("order_items.select", {
+    userId: user.id,
+    orderItemIdCount: orderItemIds.length,
+  });
+  logLibraryQuery("products.select_by_id", {
+    userId: user.id,
+    productIdCount: productIds.length,
+  });
+  logLibraryQuery("products.select_by_slug", {
+    userId: user.id,
+    productSlugCount: productSlugs.length,
+  });
+  logLibraryQuery("collections.select", { userId: user.id });
+
   const [
     { data: orderRows, error: ordersError },
     { data: orderItemRows, error: orderItemsError },
@@ -243,33 +325,79 @@ export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
     productIds.length > 0
       ? supabase
           .from("products")
-          .select(
-            "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status, download_filename",
-          )
+          .select(LIBRARY_PRODUCT_COLUMNS)
           .in("id", productIds)
       : Promise.resolve({ data: [], error: null }),
     productSlugs.length > 0
       ? supabase
           .from("products")
-          .select(
-            "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status, download_filename",
-          )
+          .select(LIBRARY_PRODUCT_COLUMNS)
           .in("slug", productSlugs)
       : Promise.resolve({ data: [], error: null }),
     supabase.from("collections").select("id, slug, name"),
   ]);
 
-  if (ordersError || orderItemsError || collectionsError) {
-    throw ordersError ?? orderItemsError ?? collectionsError;
+  if (ordersError) {
+    throwLoggedLibraryQueryError("orders.select", ordersError, {
+      userId: user.id,
+      orderIdCount: orderIds.length,
+    });
   }
+
+  logLibraryInfo("orders.select succeeded.", {
+    userId: user.id,
+    rowCount: orderRows?.length ?? 0,
+  });
+
+  if (orderItemsError) {
+    throwLoggedLibraryQueryError("order_items.select", orderItemsError, {
+      userId: user.id,
+      orderItemIdCount: orderItemIds.length,
+    });
+  }
+
+  logLibraryInfo("order_items.select succeeded.", {
+    userId: user.id,
+    rowCount: orderItemRows?.length ?? 0,
+  });
+
+  if (collectionsError) {
+    throwLoggedLibraryQueryError("collections.select", collectionsError, {
+      userId: user.id,
+    });
+  }
+
+  logLibraryInfo("collections.select succeeded.", {
+    userId: user.id,
+    rowCount: collectionRows?.length ?? 0,
+  });
 
   if (productsByIdResult.error) {
-    throw productsByIdResult.error;
+    throwLoggedLibraryQueryError("products.select_by_id", productsByIdResult.error, {
+      userId: user.id,
+      productIdCount: productIds.length,
+      selectedColumns: LIBRARY_PRODUCT_COLUMNS,
+    });
   }
 
+  logLibraryInfo("products.select_by_id succeeded.", {
+    userId: user.id,
+    rowCount: productsByIdResult.data?.length ?? 0,
+  });
+
   if (productsBySlugResult.error) {
-    throw productsBySlugResult.error;
+    throwLoggedLibraryQueryError("products.select_by_slug", productsBySlugResult.error, {
+      userId: user.id,
+      productSlugCount: productSlugs.length,
+      productSlugs,
+      selectedColumns: LIBRARY_PRODUCT_COLUMNS,
+    });
   }
+
+  logLibraryInfo("products.select_by_slug succeeded.", {
+    userId: user.id,
+    rowCount: productsBySlugResult.data?.length ?? 0,
+  });
 
   const ordersById = new Map(
     ((orderRows ?? []) as OrderQueryRow[]).map((row) => [row.id, row]),
@@ -319,6 +447,11 @@ export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
       product,
       collection,
     });
+  });
+
+  logLibraryInfo("Library load completed.", {
+    userId: user.id,
+    artworkCount: artworks.length,
   });
 
   return { artworks };

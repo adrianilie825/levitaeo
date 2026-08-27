@@ -4,7 +4,6 @@ import { useState } from "react";
 
 type SecureDownloadButtonProps = {
   productId: string | null;
-  filename: string | null;
   isDownloadReady: boolean;
 };
 
@@ -12,7 +11,6 @@ type ButtonState = "idle" | "loading" | "error";
 
 export default function SecureDownloadButton({
   productId,
-  filename,
   isDownloadReady,
 }: SecureDownloadButtonProps) {
   const [state, setState] = useState<ButtonState>("idle");
@@ -50,7 +48,7 @@ export default function SecureDownloadButton({
 
     return {
       url: payload.url,
-      filename: payload.filename ?? filename ?? "levitaeo-edition",
+      filename: payload.filename ?? "levitaeo-edition",
     };
   }
 
