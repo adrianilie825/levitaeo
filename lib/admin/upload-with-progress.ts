@@ -11,12 +11,12 @@ export type JsonRequestResult<T extends Record<string, unknown>> =
 export async function requestJson<T extends Record<string, unknown>>(
   url: string,
   options: {
-    method?: "DELETE" | "POST" | "PUT";
+    method?: "DELETE" | "GET" | "POST" | "PUT";
   } = {},
 ): Promise<JsonRequestResult<T>> {
   try {
     const response = await fetch(url, {
-      method: options.method ?? "DELETE",
+      method: options.method ?? "GET",
       credentials: "same-origin",
       cache: "no-store",
       headers: {

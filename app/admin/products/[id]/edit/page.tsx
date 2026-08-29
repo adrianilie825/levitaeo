@@ -7,6 +7,7 @@ import {
   getProductDeliveryFileSummary,
   listAdminCollections,
 } from "@/lib/admin/catalog";
+import { getAdminProductStripeStatus } from "@/lib/admin/stripe-status";
 
 export const metadata: Metadata = {
   title: "Edit Artwork",
@@ -26,6 +27,8 @@ export default async function AdminEditProductPage({ params }: PageProps) {
   if (!product) {
     notFound();
   }
+
+  const initialStripeStatus = await getAdminProductStripeStatus(product);
 
   return (
     <div>
@@ -57,6 +60,7 @@ export default async function AdminEditProductPage({ params }: PageProps) {
               storagePath: null,
             };
           })()}
+          initialStripeStatus={initialStripeStatus}
         />
       </div>
     </div>

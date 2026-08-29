@@ -31,6 +31,7 @@ import {
   ACCEPT_UPLOAD_EXTENSIONS,
   ACCEPT_UPLOAD_MIME_TYPES,
 } from "@/lib/downloads/upload-constants";
+import type { AdminProductStripeStatus } from "@/lib/admin/stripe-status";
 import type { CatalogCollectionRow } from "@/types/database";
 
 type ArtworkFormProps = {
@@ -39,6 +40,7 @@ type ArtworkFormProps = {
   collections: Pick<CatalogCollectionRow, "id" | "slug" | "name">[];
   initialValues: ArtworkFormValues;
   initialDeliveryFile?: ProductDeliveryFileSummary;
+  initialStripeStatus?: AdminProductStripeStatus;
 };
 
 const inputClassName =
@@ -87,6 +89,7 @@ export default function ArtworkForm({
   collections,
   initialValues,
   initialDeliveryFile,
+  initialStripeStatus,
 }: ArtworkFormProps) {
   const router = useRouter();
   const { showSuccess, showError } = useAdminToast();
@@ -134,6 +137,17 @@ export default function ArtworkForm({
     },
   );
   const processedSuccessRef = useRef<string | null>(null);
+  const [stripeStatus, setStripeStatus] = useState<AdminProductStripeStatus>(
+    initialStripeStatus ?? {
+      configured: false,
+      inSync: false,
+      stripePriceId: null,
+      pricingValid: false,
+      pricingError: null,
+    },
+  );
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeError, setStripeError] = useState<string | null>(null);
 
   useEffect(() => {
     setValues(initialValues);
@@ -142,13 +156,46 @@ export default function ArtworkForm({
     if (initialDeliveryFile) {
       setDeliveryFile(initialDeliveryFile);
     }
-  }, [initialValues, mode, productId, initialDeliveryFile]);
+    if (initialStripeStatus) {
+      setStripeStatus(initialStripeStatus);
+    }
+  }, [initialValues, mode, productId, initialDeliveryFile, initialStripeStatus]);
 
   useEffect(() => {
     if (state.error) {
       showError(state.error);
     }
   }, [state.error, showError]);
+
+  useEffect(() => {
+    const activeProductId = resolvedProductId || productId;
+
+    if (!activeProductId) {
+      return;
+    }
+
+    async function loadStripeStatus() {
+      const result = await requestJson<{
+        configured?: boolean;
+        inSync?: boolean;
+        stripePriceId?: string | null;
+        pricingValid?: boolean;
+        pricingError?: string | null;
+      }>(`/api/admin/products/${activeProductId}/stripe`, { method: "GET" });
+
+      if (result.ok) {
+        setStripeStatus({
+          configured: Boolean(result.data.configured),
+          inSync: Boolean(result.data.inSync),
+          stripePriceId: result.data.stripePriceId ?? null,
+          pricingValid: Boolean(result.data.pricingValid),
+          pricingError: result.data.pricingError ?? null,
+        });
+      }
+    }
+
+    void loadStripeStatus();
+  }, [resolvedProductId, productId]);
 
   useEffect(() => {
     if (!state.success) {
@@ -437,6 +484,43 @@ export default function ArtworkForm({
     router.refresh();
   }
 
+  async function createStripePrice() {
+    const activeProductId = resolvedProductId || productId;
+
+    if (!activeProductId) {
+      showError("Save the artwork before creating a Stripe price.");
+      return;
+    }
+
+    setStripeLoading(true);
+    setStripeError(null);
+
+    const result = await requestJson<{
+      stripePriceId?: string;
+      stripeProductId?: string;
+      inSync?: boolean;
+      error?: string;
+    }>(`/api/admin/products/${activeProductId}/stripe`, { method: "POST" });
+
+    setStripeLoading(false);
+
+    if (!result.ok) {
+      setStripeError(result.message);
+      showError(result.message);
+      return;
+    }
+
+    setStripeStatus({
+      configured: true,
+      inSync: true,
+      stripePriceId: result.data.stripePriceId ?? null,
+      pricingValid: true,
+      pricingError: null,
+    });
+    showSuccess("Stripe price created.");
+    router.refresh();
+  }
+
   async function removeDeliveryFile() {
     const activeProductId = resolvedProductId || productId;
 
@@ -479,6 +563,9 @@ export default function ArtworkForm({
   const deliveryReady = deliveryFile.configured || Boolean(pendingDeliveryFile);
   const deliveryUploading = deliveryProgress !== null;
   const activeProductId = resolvedProductId || productId;
+  const stripeReady = stripeStatus.configured && stripeStatus.inSync;
+  const stripeNeedsUpdate = stripeStatus.configured && !stripeStatus.inSync;
+  const canCreateStripePrice = Boolean(activeProductId) && stripeStatus.pricingValid;
 
   return (
     <form action={formAction} className="space-y-10" noValidate>
@@ -707,22 +794,75 @@ export default function ArtworkForm({
             Featured artwork
           </label>
         </div>
+      </section>
 
-        <div className="md:col-span-2">
-          <label htmlFor="stripe_price_id" className={labelClassName}>
-            Stripe price ID
-          </label>
-          <input
-            id="stripe_price_id"
-            name="stripe_price_id"
-            value={values.stripe_price_id}
-            onChange={(event) =>
-              updateField("stripe_price_id", event.target.value)
+      <section className="space-y-6 border border-[#ECE8E2] bg-white p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-light tracking-[-0.02em]">Stripe checkout</h2>
+            <p className="mt-3 max-w-2xl text-[14px] leading-6 text-neutral-600">
+              Create a one-time Stripe Product and Price from the saved artwork
+              price. Save the artwork first, then create or update the Stripe
+              price when the amount or currency changes.
+            </p>
+          </div>
+          <AssetStatusBadge
+            label={
+              stripeError
+                ? "Stripe failed"
+                : stripeLoading
+                  ? "Creating…"
+                  : stripeReady
+                    ? "Stripe ready"
+                    : stripeNeedsUpdate
+                      ? "Price changed"
+                      : "No Stripe price"
             }
-            placeholder="price_..."
-            className={inputClassName}
+            tone={
+              stripeError
+                ? "failed"
+                : stripeLoading
+                  ? "uploading"
+                  : stripeReady
+                    ? "ready"
+                    : "neutral"
+            }
           />
         </div>
+
+        {!activeProductId ? (
+          <p className="text-[13px] leading-6 text-neutral-600">
+            Save the artwork to enable Stripe price creation.
+          </p>
+        ) : null}
+
+        {!stripeStatus.pricingValid && stripeStatus.pricingError ? (
+          <p className={errorClassName}>{stripeStatus.pricingError}</p>
+        ) : null}
+
+        {stripeError ? <p className={errorClassName}>{stripeError}</p> : null}
+
+        {stripeStatus.stripePriceId ? (
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt className={labelClassName}>Stripe price ID</dt>
+              <dd className="mt-2 break-all text-[15px] font-mono text-[#111111]">
+                {stripeStatus.stripePriceId}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
+
+        {!stripeReady ? (
+          <button
+            type="button"
+            onClick={() => void createStripePrice()}
+            disabled={!canCreateStripePrice || stripeLoading || pending || uploadPhase !== "idle"}
+            className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-white transition-colors hover:bg-transparent hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {stripeNeedsUpdate ? "Update Stripe price" : "Create Stripe price"}
+          </button>
+        ) : null}
       </section>
 
       <input type="hidden" name="image_url" value={values.image_url} />

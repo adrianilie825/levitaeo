@@ -34,6 +34,7 @@ export type CatalogProductRow = {
   status: string;
   is_featured: boolean;
   stripe_price_id: string | null;
+  stripe_product_id: string | null;
   sort_order: number;
   download_storage_path: string | null;
   download_filename: string | null;

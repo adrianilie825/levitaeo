@@ -60,7 +60,6 @@ function readProductInput(formData: FormData): {
   const resolution = String(formData.get("resolution") ?? "").trim();
   const fileType = String(formData.get("file_type") ?? "").trim();
   const status = String(formData.get("status") ?? "").trim();
-  const stripePriceId = String(formData.get("stripe_price_id") ?? "").trim();
   const sortOrderRaw = String(formData.get("sort_order") ?? "0").trim();
   const isFeatured = formData.get("is_featured") === "on";
 
@@ -119,7 +118,6 @@ function readProductInput(formData: FormData): {
       file_type: fileType,
       status,
       is_featured: isFeatured,
-      stripe_price_id: stripePriceId || null,
       sort_order: sortOrder,
     },
     fieldErrors,
