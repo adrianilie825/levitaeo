@@ -14,13 +14,23 @@ import {
 import { PRODUCT_STATUSES } from "@/lib/admin/product-constants";
 import type { ArtworkFormValues } from "@/lib/admin/artwork-form-defaults";
 import type { ProductDeliveryFileSummary } from "@/lib/admin/product-delivery";
-import { uploadFileWithProgress } from "@/lib/admin/upload-with-progress";
+import {
+  requestJson,
+  uploadFileWithProgress,
+} from "@/lib/admin/upload-with-progress";
 import { validatePreviewFileMeta } from "@/lib/admin/preview-validation";
-import { validateZipFileMeta } from "@/lib/admin/zip-validation";
+import {
+  formatUploadBytes,
+  validateUploadFileMeta,
+} from "@/lib/downloads/upload-validation";
 import {
   ACCEPT_PREVIEW_EXTENSIONS,
   ACCEPT_PREVIEW_MIME_TYPES,
 } from "@/lib/storage/preview-constants";
+import {
+  ACCEPT_UPLOAD_EXTENSIONS,
+  ACCEPT_UPLOAD_MIME_TYPES,
+} from "@/lib/downloads/upload-constants";
 import type { CatalogCollectionRow } from "@/types/database";
 
 type ArtworkFormProps = {
@@ -36,6 +46,31 @@ const inputClassName =
 const labelClassName =
   "block text-[11px] uppercase tracking-[0.28em] text-neutral-500";
 const errorClassName = "mt-2 text-[13px] leading-6 text-neutral-600";
+
+function AssetStatusBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "neutral" | "ready" | "uploading" | "failed";
+}) {
+  const toneClassName =
+    tone === "ready"
+      ? "border-[#111111] text-[#111111]"
+      : tone === "uploading"
+        ? "border-neutral-400 text-neutral-600"
+        : tone === "failed"
+          ? "border-red-300 text-red-700"
+          : "border-[#ECE8E2] text-neutral-500";
+
+  return (
+    <span
+      className={`inline-flex items-center border px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${toneClassName}`}
+    >
+      {label}
+    </span>
+  );
+}
 
 function slugifyTitle(title: string): string {
   return title
@@ -56,7 +91,7 @@ export default function ArtworkForm({
   const router = useRouter();
   const { showSuccess, showError } = useAdminToast();
   const previewInputRef = useRef<HTMLInputElement>(null);
-  const zipInputRef = useRef<HTMLInputElement>(null);
+  const deliveryInputRef = useRef<HTMLInputElement>(null);
 
   const boundUpdateAction =
     mode === "edit" && productId
@@ -74,11 +109,19 @@ export default function ArtworkForm({
   const [pendingPreviewFile, setPendingPreviewFile] = useState<File | null>(
     null,
   );
-  const [pendingZipFile, setPendingZipFile] = useState<File | null>(null);
+  const [pendingDeliveryFile, setPendingDeliveryFile] = useState<File | null>(
+    null,
+  );
   const [previewProgress, setPreviewProgress] = useState<number | null>(null);
-  const [zipProgress, setZipProgress] = useState<number | null>(null);
+  const [deliveryProgress, setDeliveryProgress] = useState<number | null>(null);
+  const [previewUploadError, setPreviewUploadError] = useState<string | null>(
+    null,
+  );
+  const [deliveryUploadError, setDeliveryUploadError] = useState<string | null>(
+    null,
+  );
   const [uploadPhase, setUploadPhase] = useState<
-    "idle" | "preview" | "zip" | "done"
+    "idle" | "preview" | "delivery" | "done"
   >("idle");
   const [deliveryFile, setDeliveryFile] = useState<ProductDeliveryFileSummary>(
     initialDeliveryFile ?? {
@@ -159,37 +202,39 @@ export default function ArtworkForm({
           setPreviewProgress(null);
         }
 
-        if (pendingZipFile) {
-          setUploadPhase("zip");
-          setZipProgress(0);
+        if (pendingDeliveryFile) {
+          setUploadPhase("delivery");
+          setDeliveryProgress(0);
 
-          const zipResult = await uploadFileWithProgress<{
+          const deliveryResult = await uploadFileWithProgress<{
+            configured?: boolean;
             filename?: string;
             mimeType?: string;
             sizeBytes?: number;
             version?: string;
             error?: string;
-          }>(`/api/admin/products/${activeProductId}/upload`, pendingZipFile, {
-            onProgress: setZipProgress,
+          }>(`/api/admin/products/${activeProductId}/upload`, pendingDeliveryFile, {
+            onProgress: setDeliveryProgress,
           });
 
-          if (!zipResult.ok) {
-            showError(zipResult.message);
+          if (!deliveryResult.ok) {
+            showError(deliveryResult.message);
             setUploadPhase("idle");
-            setZipProgress(null);
+            setDeliveryProgress(null);
             return;
           }
 
           setDeliveryFile({
             configured: true,
-            filename: zipResult.data.filename ?? pendingZipFile.name,
-            mimeType: zipResult.data.mimeType ?? pendingZipFile.type,
-            sizeBytes: zipResult.data.sizeBytes ?? pendingZipFile.size,
-            version: zipResult.data.version ?? null,
+            filename: deliveryResult.data.filename ?? pendingDeliveryFile.name,
+            mimeType: deliveryResult.data.mimeType ?? pendingDeliveryFile.type,
+            sizeBytes:
+              deliveryResult.data.sizeBytes ?? pendingDeliveryFile.size,
+            version: deliveryResult.data.version ?? null,
             storagePath: null,
           });
-          setPendingZipFile(null);
-          setZipProgress(null);
+          setPendingDeliveryFile(null);
+          setDeliveryProgress(null);
         }
 
         setUploadPhase("done");
@@ -211,7 +256,7 @@ export default function ArtworkForm({
   }, [
     mode,
     pendingPreviewFile,
-    pendingZipFile,
+    pendingDeliveryFile,
     router,
     showError,
     showSuccess,
@@ -240,6 +285,84 @@ export default function ArtworkForm({
     });
   }
 
+  async function uploadPreviewNow(
+    activeProductId: string,
+    file: File,
+  ): Promise<boolean> {
+    setPreviewUploadError(null);
+    setUploadPhase("preview");
+    setPreviewProgress(0);
+
+    const previewResult = await uploadFileWithProgress<{
+      imageUrl?: string;
+      error?: string;
+    }>(`/api/admin/products/${activeProductId}/preview`, file, {
+      onProgress: setPreviewProgress,
+    });
+
+    setPreviewProgress(null);
+    setUploadPhase("idle");
+
+    if (!previewResult.ok) {
+      setPreviewUploadError(previewResult.message);
+      showError(previewResult.message);
+      return false;
+    }
+
+    const imageUrl = previewResult.data.imageUrl ?? values.image_url;
+    setValues((current) => ({
+      ...current,
+      image_url: imageUrl,
+      thumbnail_url: imageUrl,
+    }));
+    setPendingPreviewFile(null);
+    showSuccess("Preview image uploaded.");
+    router.refresh();
+    return true;
+  }
+
+  async function uploadDeliveryNow(
+    activeProductId: string,
+    file: File,
+  ): Promise<boolean> {
+    setDeliveryUploadError(null);
+    setUploadPhase("delivery");
+    setDeliveryProgress(0);
+
+    const deliveryResult = await uploadFileWithProgress<{
+      configured?: boolean;
+      filename?: string;
+      mimeType?: string;
+      sizeBytes?: number;
+      version?: string;
+      error?: string;
+    }>(`/api/admin/products/${activeProductId}/upload`, file, {
+      onProgress: setDeliveryProgress,
+    });
+
+    setDeliveryProgress(null);
+    setUploadPhase("idle");
+
+    if (!deliveryResult.ok) {
+      setDeliveryUploadError(deliveryResult.message);
+      showError(deliveryResult.message);
+      return false;
+    }
+
+    setDeliveryFile({
+      configured: true,
+      filename: deliveryResult.data.filename ?? file.name,
+      mimeType: deliveryResult.data.mimeType ?? file.type,
+      sizeBytes: deliveryResult.data.sizeBytes ?? file.size,
+      version: deliveryResult.data.version ?? null,
+      storagePath: null,
+    });
+    setPendingDeliveryFile(null);
+    showSuccess("Delivery file uploaded.");
+    router.refresh();
+    return true;
+  }
+
   function handlePreviewSelection(file: File) {
     const validation = validatePreviewFileMeta({
       name: file.name,
@@ -252,11 +375,19 @@ export default function ArtworkForm({
       return;
     }
 
+    const activeProductId = resolvedProductId || productId;
+
+    if (mode === "edit" && activeProductId) {
+      void uploadPreviewNow(activeProductId, file);
+      return;
+    }
+
+    setPreviewUploadError(null);
     setPendingPreviewFile(file);
   }
 
-  function handleZipSelection(file: File) {
-    const validation = validateZipFileMeta({
+  function handleDeliverySelection(file: File) {
+    const validation = validateUploadFileMeta({
       name: file.name,
       size: file.size,
       type: file.type,
@@ -267,7 +398,74 @@ export default function ArtworkForm({
       return;
     }
 
-    setPendingZipFile(file);
+    const activeProductId = resolvedProductId || productId;
+
+    if (mode === "edit" && activeProductId) {
+      void uploadDeliveryNow(activeProductId, file);
+      return;
+    }
+
+    setDeliveryUploadError(null);
+    setPendingDeliveryFile(file);
+  }
+
+  async function removePreview() {
+    const activeProductId = resolvedProductId || productId;
+
+    if (!activeProductId) {
+      return;
+    }
+
+    const result = await requestJson<{ imageUrl?: string }>(
+      `/api/admin/products/${activeProductId}/preview`,
+      { method: "DELETE" },
+    );
+
+    if (!result.ok) {
+      showError(result.message);
+      return;
+    }
+
+    setValues((current) => ({
+      ...current,
+      image_url: "",
+      thumbnail_url: "",
+    }));
+    setPendingPreviewFile(null);
+    setPreviewUploadError(null);
+    showSuccess("Preview image removed.");
+    router.refresh();
+  }
+
+  async function removeDeliveryFile() {
+    const activeProductId = resolvedProductId || productId;
+
+    if (!activeProductId) {
+      return;
+    }
+
+    const result = await requestJson<{ configured?: boolean }>(
+      `/api/admin/products/${activeProductId}/upload`,
+      { method: "DELETE" },
+    );
+
+    if (!result.ok) {
+      showError(result.message);
+      return;
+    }
+
+    setDeliveryFile({
+      configured: false,
+      filename: null,
+      mimeType: null,
+      sizeBytes: null,
+      version: null,
+      storagePath: null,
+    });
+    setPendingDeliveryFile(null);
+    setDeliveryUploadError(null);
+    showSuccess("Delivery file removed.");
+    router.refresh();
   }
 
   const fieldErrors = state.fieldErrors ?? {};
@@ -276,6 +474,11 @@ export default function ArtworkForm({
     pendingPreviewFile != null
       ? URL.createObjectURL(pendingPreviewFile)
       : values.image_url;
+  const previewReady = Boolean(previewSource);
+  const previewUploading = previewProgress !== null;
+  const deliveryReady = deliveryFile.configured || Boolean(pendingDeliveryFile);
+  const deliveryUploading = deliveryProgress !== null;
+  const activeProductId = resolvedProductId || productId;
 
   return (
     <form action={formAction} className="space-y-10" noValidate>
@@ -526,14 +729,36 @@ export default function ArtworkForm({
       <input type="hidden" name="thumbnail_url" value={values.thumbnail_url} />
 
       <section className="space-y-6 border border-[#ECE8E2] bg-white p-6">
-        <div>
-          <h2 className="text-xl font-light tracking-[-0.02em]">
-            Preview image
-          </h2>
-          <p className="mt-3 max-w-2xl text-[14px] leading-6 text-neutral-600">
-            Upload a catalog preview image to the public product-previews
-            bucket. PNG, JPG, or WebP up to 20 MB.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-light tracking-[-0.02em]">
+              Preview image
+            </h2>
+            <p className="mt-3 max-w-2xl text-[14px] leading-6 text-neutral-600">
+              Upload a catalog preview image to the public product-previews
+              bucket. PNG, JPG, or WebP up to 20 MB.
+            </p>
+          </div>
+          <AssetStatusBadge
+            label={
+              previewUploadError
+                ? "Upload failed"
+                : previewUploading
+                  ? "Uploading…"
+                  : previewReady
+                    ? "Preview ready"
+                    : "No preview uploaded"
+            }
+            tone={
+              previewUploadError
+                ? "failed"
+                : previewUploading
+                  ? "uploading"
+                  : previewReady
+                    ? "ready"
+                    : "neutral"
+            }
+          />
         </div>
 
         {previewSource ? (
@@ -547,6 +772,10 @@ export default function ArtworkForm({
               unoptimized={previewSource.startsWith("blob:")}
             />
           </div>
+        ) : null}
+
+        {previewUploadError ? (
+          <p className={errorClassName}>{previewUploadError}</p>
         ) : null}
 
         <input
@@ -572,10 +801,18 @@ export default function ArtworkForm({
             disabled={isSaving}
             className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-white transition-colors hover:bg-transparent hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {pendingPreviewFile || values.image_url
-              ? "Replace preview"
-              : "Choose preview image"}
+            {previewReady ? "Replace preview" : "Choose preview image"}
           </button>
+          {mode === "edit" && activeProductId && previewReady && !previewUploading ? (
+            <button
+              type="button"
+              onClick={() => void removePreview()}
+              disabled={isSaving}
+              className="inline-flex items-center justify-center border border-[#ECE8E2] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-[#111111] transition-colors hover:border-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Remove preview
+            </button>
+          ) : null}
           {pendingPreviewFile ? (
             <p className="text-[13px] text-neutral-600">
               Selected: {pendingPreviewFile.name}
@@ -590,67 +827,118 @@ export default function ArtworkForm({
       </section>
 
       <section className="space-y-6 border border-[#ECE8E2] bg-white p-6">
-        <div>
-          <h2 className="text-xl font-light tracking-[-0.02em]">
-            Download ZIP
-          </h2>
-          <p className="mt-3 max-w-2xl text-[14px] leading-6 text-neutral-600">
-            Upload the private customer delivery archive to the artwork-downloads
-            bucket. ZIP only, up to 500 MB.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-light tracking-[-0.02em]">
+              Delivery file
+            </h2>
+            <p className="mt-3 max-w-2xl text-[14px] leading-6 text-neutral-600">
+              Upload the private customer delivery file to the artwork-downloads
+              bucket. ZIP, PNG, JPG, WebP, or PDF up to 500 MB.
+            </p>
+          </div>
+          <AssetStatusBadge
+            label={
+              deliveryUploadError
+                ? "Upload failed"
+                : deliveryUploading
+                  ? "Uploading…"
+                  : deliveryReady
+                    ? "Delivery file ready"
+                    : "No delivery file"
+            }
+            tone={
+              deliveryUploadError
+                ? "failed"
+                : deliveryUploading
+                  ? "uploading"
+                  : deliveryReady
+                    ? "ready"
+                    : "neutral"
+            }
+          />
         </div>
 
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <dt className={labelClassName}>Filename</dt>
             <dd className="mt-2 text-[15px]">
-              {pendingZipFile?.name ?? deliveryFile.filename ?? "—"}
+              {pendingDeliveryFile?.name ?? deliveryFile.filename ?? "—"}
             </dd>
           </div>
           <div>
-            <dt className={labelClassName}>Status</dt>
+            <dt className={labelClassName}>MIME type</dt>
             <dd className="mt-2 text-[15px]">
-              {deliveryFile.configured || pendingZipFile ? "Ready" : "Not configured"}
+              {pendingDeliveryFile?.type ?? deliveryFile.mimeType ?? "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className={labelClassName}>Size</dt>
+            <dd className="mt-2 text-[15px]">
+              {pendingDeliveryFile
+                ? formatUploadBytes(pendingDeliveryFile.size)
+                : deliveryFile.sizeBytes != null
+                  ? formatUploadBytes(deliveryFile.sizeBytes)
+                  : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className={labelClassName}>Version</dt>
+            <dd className="mt-2 text-[15px]">
+              {deliveryFile.version ?? "—"}
             </dd>
           </div>
         </dl>
 
+        {deliveryUploadError ? (
+          <p className={errorClassName}>{deliveryUploadError}</p>
+        ) : null}
+
         <input
-          ref={zipInputRef}
-          id="delivery-zip-input"
+          ref={deliveryInputRef}
+          id="delivery-file-input"
           type="file"
-          accept=".zip,application/zip,application/x-zip-compressed"
+          accept={`${ACCEPT_UPLOAD_EXTENSIONS},${ACCEPT_UPLOAD_MIME_TYPES}`}
           className="sr-only"
           disabled={isSaving}
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) {
-              handleZipSelection(file);
+              handleDeliverySelection(file);
             }
             event.target.value = "";
           }}
         />
 
-        <button
-          type="button"
-          onClick={() => zipInputRef.current?.click()}
-          disabled={isSaving}
-          className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-white transition-colors hover:bg-transparent hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {deliveryFile.configured || pendingZipFile
-            ? "Replace ZIP"
-            : "Choose ZIP file"}
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={() => deliveryInputRef.current?.click()}
+            disabled={isSaving}
+            className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-white transition-colors hover:bg-transparent hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {deliveryReady ? "Replace delivery file" : "Choose delivery file"}
+          </button>
+          {mode === "edit" && activeProductId && deliveryFile.configured && !deliveryUploading ? (
+            <button
+              type="button"
+              onClick={() => void removeDeliveryFile()}
+              disabled={isSaving}
+              className="inline-flex items-center justify-center border border-[#ECE8E2] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-[#111111] transition-colors hover:border-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Remove delivery file
+            </button>
+          ) : null}
+          {pendingDeliveryFile ? (
+            <p className="text-[13px] text-neutral-600">
+              Selected: {pendingDeliveryFile.name}
+              {mode === "create" ? " (uploads after save)" : ""}
+            </p>
+          ) : null}
+        </div>
 
-        {pendingZipFile ? (
-          <p className="text-[13px] text-neutral-600">
-            Selected: {pendingZipFile.name}
-            {mode === "create" ? " (uploads after save)" : ""}
-          </p>
-        ) : null}
-
-        {zipProgress !== null ? (
-          <UploadProgressBar percent={zipProgress} label="Uploading ZIP" />
+        {deliveryProgress !== null ? (
+          <UploadProgressBar percent={deliveryProgress} label="Uploading delivery file" />
         ) : null}
       </section>
 
@@ -664,8 +952,8 @@ export default function ArtworkForm({
           {isSaving
             ? uploadPhase === "preview"
               ? "Uploading preview…"
-              : uploadPhase === "zip"
-                ? "Uploading ZIP…"
+              : uploadPhase === "delivery"
+                ? "Uploading delivery file…"
                 : "Saving…"
             : mode === "create"
               ? "Create artwork"

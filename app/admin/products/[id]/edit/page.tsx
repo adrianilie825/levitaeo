@@ -46,7 +46,17 @@ export default async function AdminEditProductPage({ params }: PageProps) {
           productId={product.id}
           collections={collections}
           initialValues={productRowToFormValues(product)}
-          initialDeliveryFile={getProductDeliveryFileSummary(product)}
+          initialDeliveryFile={(() => {
+            const summary = getProductDeliveryFileSummary(product);
+            return {
+              configured: summary.configured,
+              filename: summary.filename,
+              mimeType: summary.mimeType,
+              sizeBytes: summary.sizeBytes,
+              version: summary.version,
+              storagePath: null,
+            };
+          })()}
         />
       </div>
     </div>

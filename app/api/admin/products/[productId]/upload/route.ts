@@ -12,8 +12,8 @@ import {
   buildVersionedStorageFilename,
   generateDownloadVersion,
   sanitizeDownloadFilename,
+  validateUploadFileMeta,
 } from "@/lib/downloads/upload-validation";
-import { validateZipFileMeta } from "@/lib/admin/zip-validation";
 import {
   buildArtworkStoragePath,
   deleteArtworkFile,
@@ -81,7 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
     return adminJson({ error: "Invalid upload payload." }, 400);
   }
 
-  const validation = validateZipFileMeta({
+  const validation = validateUploadFileMeta({
     name: uploaded.name,
     size: uploaded.size,
     type: uploaded.type,

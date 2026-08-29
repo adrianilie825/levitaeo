@@ -4,6 +4,54 @@ export type UploadProgressResult<T extends Record<string, unknown>> =
   | { ok: true; status: number; data: T }
   | { ok: false; status: number; message: string; data?: T };
 
+export type JsonRequestResult<T extends Record<string, unknown>> =
+  | { ok: true; status: number; data: T }
+  | { ok: false; status: number; message: string; data?: T };
+
+export async function requestJson<T extends Record<string, unknown>>(
+  url: string,
+  options: {
+    method?: "DELETE" | "POST" | "PUT";
+  } = {},
+): Promise<JsonRequestResult<T>> {
+  try {
+    const response = await fetch(url, {
+      method: options.method ?? "DELETE",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const data = (await response.json().catch(() => ({}))) as T;
+    const message =
+      typeof data === "object" &&
+      data !== null &&
+      "error" in data &&
+      typeof data.error === "string"
+        ? data.error
+        : "Request failed.";
+
+    if (response.ok) {
+      return { ok: true, status: response.status, data };
+    }
+
+    return {
+      ok: false,
+      status: response.status,
+      message,
+      data,
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      message: "Network error. Please try again.",
+    };
+  }
+}
+
 export function uploadFileWithProgress<T extends Record<string, unknown>>(
   url: string,
   file: File,
