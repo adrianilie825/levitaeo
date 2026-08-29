@@ -1,6 +1,8 @@
 import "server-only";
 
 import { getStripe } from "@/lib/stripe";
+import { STRIPE_DIGITAL_ARTWORK_TAX_CODE } from "@/lib/stripe/constants";
+import { ensureStripeProductTaxCode } from "@/lib/stripe/checkout-prep";
 
 export const SUPPORTED_STRIPE_CURRENCIES = ["EUR", "USD", "GBP", "CHF"] as const;
 
@@ -156,15 +158,19 @@ export async function ensureStripePriceForProduct(
     purchaseType: "digital-artwork",
   };
 
+  const productPayload = {
+    name: input.title,
+    metadata,
+    tax_code: STRIPE_DIGITAL_ARTWORK_TAX_CODE,
+  };
+
   let stripeProductId = input.stripeProductId?.trim() || null;
   let createdProduct = false;
 
   if (stripeProductId) {
     try {
-      await stripe.products.update(stripeProductId, {
-        name: input.title,
-        metadata,
-      });
+      await stripe.products.update(stripeProductId, productPayload);
+      await ensureStripeProductTaxCode(stripe, stripeProductId);
     } catch {
       stripeProductId = null;
     }
@@ -172,10 +178,7 @@ export async function ensureStripePriceForProduct(
 
   if (!stripeProductId) {
     try {
-      const product = await stripe.products.create({
-        name: input.title,
-        metadata,
-      });
+      const product = await stripe.products.create(productPayload);
       stripeProductId = product.id;
       createdProduct = true;
     } catch {
@@ -198,6 +201,8 @@ export async function ensureStripePriceForProduct(
         existingPrice.currency.toUpperCase() === validation.currency &&
         existingPrice.active
       ) {
+        await ensureStripeProductTaxCode(stripe, stripeProductId);
+
         return {
           ok: true,
           stripeProductId,
@@ -216,6 +221,7 @@ export async function ensureStripePriceForProduct(
       product: stripeProductId,
       unit_amount: input.priceCents,
       currency,
+      tax_behavior: "exclusive",
       metadata,
     });
 

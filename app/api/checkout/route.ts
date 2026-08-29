@@ -5,6 +5,10 @@ import { validateCheckoutProduct } from "@/lib/purchases/checkout-validation";
 import { userOwnsActiveProduct } from "@/lib/purchases/ownership";
 import { getProductPath } from "@/lib/products-db";
 import { getStripe } from "@/lib/stripe";
+import {
+  buildCheckoutSessionParams,
+  ensureCheckoutProductTaxCode,
+} from "@/lib/stripe/checkout-prep";
 import { siteConfig } from "@/lib/site";
 
 export const runtime = "nodejs";
@@ -211,39 +215,43 @@ export async function POST(request: Request) {
       ? normalizeEmail(authenticatedUser.email)
       : undefined;
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      client_reference_id: authenticatedUser.id,
-      line_items: [
-        {
-          price: stripePriceId,
-          quantity: 1,
-        },
-      ],
-      success_url: `${siteConfig.url}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteConfig.url}${productPath}?checkout=cancelled`,
-      billing_address_collection: "auto",
-      allow_promotion_codes: true,
-      locale: "auto",
-      ...(customerEmail ? { customer_email: customerEmail } : {}),
-      metadata: {
-        productId: product.id ?? "",
-        productSlug: product.slug,
-        productTitle: product.title,
-        productEdition: product.edition,
-        collection: product.collection,
-        purchaseType: "digital-artwork",
-        supabaseUserId: authenticatedUser.id,
-      },
-      payment_intent_data: {
+    await ensureCheckoutProductTaxCode(stripePriceId);
+
+    const session = await stripe.checkout.sessions.create(
+      buildCheckoutSessionParams({
+        mode: "payment",
+        client_reference_id: authenticatedUser.id,
+        line_items: [
+          {
+            price: stripePriceId,
+            quantity: 1,
+          },
+        ],
+        success_url: `${siteConfig.url}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${siteConfig.url}${productPath}?checkout=cancelled`,
+        billing_address_collection: "auto",
+        allow_promotion_codes: true,
+        locale: "auto",
+        ...(customerEmail ? { customer_email: customerEmail } : {}),
         metadata: {
           productId: product.id ?? "",
           productSlug: product.slug,
+          productTitle: product.title,
+          productEdition: product.edition,
+          collection: product.collection,
           purchaseType: "digital-artwork",
           supabaseUserId: authenticatedUser.id,
         },
-      },
-    });
+        payment_intent_data: {
+          metadata: {
+            productId: product.id ?? "",
+            productSlug: product.slug,
+            purchaseType: "digital-artwork",
+            supabaseUserId: authenticatedUser.id,
+          },
+        },
+      }),
+    );
 
     if (!session.url) {
       logCheckoutDiagnostic(
