@@ -41,8 +41,12 @@ export type ProductWriteInput = {
   file_type: string;
   status: string;
   is_featured: boolean;
-  stripe_price_id: string | null;
   sort_order: number;
+};
+
+export type ProductStripeIdsInput = {
+  stripe_product_id: string;
+  stripe_price_id: string;
 };
 
 export type ProductDownloadMetadataInput = {
@@ -89,6 +93,7 @@ export async function listAdminProducts(
         status,
         is_featured,
         stripe_price_id,
+        stripe_product_id,
         sort_order,
         download_storage_path,
         download_filename,
@@ -171,6 +176,7 @@ export async function getAdminProductById(
         status,
         is_featured,
         stripe_price_id,
+        stripe_product_id,
         sort_order,
         download_storage_path,
         download_filename,
@@ -336,6 +342,28 @@ export async function listAdminCollections(): Promise<CatalogCollectionRow[]> {
   }
 
   return (data ?? []) as CatalogCollectionRow[];
+}
+
+export async function updateAdminProductStripeIds(
+  id: string,
+  input: ProductStripeIdsInput,
+): Promise<CatalogProductRow> {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("products")
+    .update({
+      stripe_product_id: input.stripe_product_id,
+      stripe_price_id: input.stripe_price_id,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as CatalogProductRow;
 }
 
 export async function updateAdminProductImageUrls(
