@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import ProductRowActions from "@/components/admin/ProductRowActions";
+import StripeBulkSyncPanel from "@/components/admin/StripeBulkSyncPanel";
 import {
   listAdminCollections,
   listAdminProducts,
@@ -13,7 +14,7 @@ import {
 } from "@/lib/admin/product-constants";
 
 export const metadata: Metadata = {
-  title: "Artworks",
+  title: "Editions",
 };
 
 type PageProps = {
@@ -42,7 +43,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
             Catalog
           </p>
           <h1 className="mt-4 text-3xl font-light tracking-[-0.02em] sm:text-4xl">
-            Artworks
+            Editions
           </h1>
           <p className="mt-4 text-[15px] leading-7 text-neutral-600">
             {products.length} artwork{products.length === 1 ? "" : "s"} shown
@@ -56,6 +57,8 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           New artwork
         </Link>
       </div>
+
+      <StripeBulkSyncPanel />
 
       <form
         method="get"

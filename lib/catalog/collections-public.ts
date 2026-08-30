@@ -18,6 +18,7 @@ import type { Collection } from "@/types/collection";
 export type PublicVolumeSummary = Volume & {
   editionCount: number;
   href: string;
+  coverImage?: string;
 };
 
 export function isBrowsableVolumeSlug(slug: string): boolean {
@@ -34,7 +35,7 @@ export async function getPublicCollectionsWithStats(): Promise<Collection[]> {
 
   const rows = await listPublicCollections();
 
-  return Promise.all(
+  const dbCollections = await Promise.all(
     rows.map(async (row) => {
       const volumes = await listPublicVolumesByCollectionSlug(row.slug);
       const browsableVolumeCount = volumes.filter((volume) =>
@@ -43,6 +44,23 @@ export async function getPublicCollectionsWithStats(): Promise<Collection[]> {
 
       return mapCollectionRowToCollection(row, browsableVolumeCount);
     }),
+  );
+
+  const collectionsBySlug = new Map(
+    dbCollections.map((collection) => [collection.slug, collection]),
+  );
+
+  for (const fallbackCollection of fallbackCollections) {
+    if (!collectionsBySlug.has(fallbackCollection.slug)) {
+      collectionsBySlug.set(fallbackCollection.slug, {
+        ...fallbackCollection,
+        volumeCount: 0,
+      });
+    }
+  }
+
+  return Array.from(collectionsBySlug.values()).sort(
+    (a, b) => a.order - b.order,
   );
 }
 
@@ -94,6 +112,7 @@ export async function listPublicVolumesForCollection(
         },
         editionCount: 6,
         href: getVolumePath("originals", "originals-series"),
+        coverImage: COLLECTION_PRESENTATION.originals?.image,
       },
     ];
   }
@@ -105,11 +124,16 @@ export async function listPublicVolumesForCollection(
       .filter((volume) => isBrowsableVolumeSlug(volume.slug))
       .map(async (volume) => {
         const editions = await listPublicEditionsByVolumeId(volume.id);
+        const coverImage =
+          editions[0]?.thumbnail_url?.trim() ||
+          editions[0]?.image_url?.trim() ||
+          COLLECTION_PRESENTATION[normalizedSlug]?.image;
 
         return {
           ...volume,
           editionCount: editions.length,
           href: getVolumePath(normalizedSlug, volume.slug),
+          coverImage,
         };
       }),
   );
