@@ -39,6 +39,8 @@ export const siteConfig = {
     instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL?.trim() ?? "",
     pinterest: process.env.NEXT_PUBLIC_PINTEREST_URL?.trim() ?? "",
   },
+  contactEmail:
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() ?? "hello@levitaeo.com",
 } as const;
 
 export type SiteConfig = typeof siteConfig;

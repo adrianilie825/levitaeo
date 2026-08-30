@@ -86,7 +86,7 @@ export default async function CollectionsPage() {
               </p>
 
               <Link
-                href="#"
+                href="/about/our-story"
                 className="mt-6 inline-block text-[12px] tracking-[0.1em] text-neutral-600 underline-offset-4 transition-colors hover:text-[#111111] hover:underline"
               >
                 Discover our story
