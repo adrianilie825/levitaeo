@@ -10,24 +10,30 @@ import "server-only";
  */
 
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { listAdminVolumes } from "@/lib/admin/volumes";
 import type {
   CatalogCollectionRow,
   CatalogProductRow,
+  CatalogVolumeRow,
 } from "@/types/database";
+import { getEditionPathFromHierarchy } from "@/lib/catalog/paths";
 
 export type AdminProductRow = CatalogProductRow & {
   collections: Pick<CatalogCollectionRow, "id" | "slug" | "name"> | null;
+  volumes: Pick<CatalogVolumeRow, "id" | "slug" | "name"> | null;
 };
 
 export type AdminProductFilters = {
   status?: string;
   collectionId?: string;
+  volumeId?: string;
   featured?: boolean;
   query?: string;
 };
 
 export type ProductWriteInput = {
   collection_id: string;
+  volume_id: string;
   slug: string;
   title: string;
   subtitle: string;
@@ -79,6 +85,7 @@ export async function listAdminProducts(
       `
         id,
         collection_id,
+        volume_id,
         slug,
         title,
         subtitle,
@@ -114,15 +121,20 @@ export async function listAdminProducts(
     query = query.eq("collection_id", filters.collectionId);
   }
 
+  if (filters.volumeId) {
+    query = query.eq("volume_id", filters.volumeId);
+  }
+
   if (filters.featured === true) {
     query = query.eq("is_featured", true);
   } else if (filters.featured === false) {
     query = query.eq("is_featured", false);
   }
 
-  const [{ data, error }, collections] = await Promise.all([
+  const [{ data, error }, collections, volumes] = await Promise.all([
     query,
     listAdminCollections(),
+    listAdminVolumes(),
   ]);
 
   if (error) {
@@ -132,10 +144,12 @@ export async function listAdminProducts(
   const collectionById = new Map(
     collections.map((collection) => [collection.id, collection]),
   );
+  const volumeById = new Map(volumes.map((volume) => [volume.id, volume]));
 
   let rows: AdminProductRow[] = (data ?? []).map((product) => ({
     ...(product as CatalogProductRow),
     collections: collectionById.get(product.collection_id) ?? null,
+    volumes: volumeById.get(product.volume_id) ?? null,
   }));
 
   if (filters.query) {
@@ -162,6 +176,7 @@ export async function getAdminProductById(
       `
         id,
         collection_id,
+        volume_id,
         slug,
         title,
         subtitle,
@@ -200,11 +215,16 @@ export async function getAdminProductById(
   const collections = await listAdminCollections();
   const collection =
     collections.find((item) => item.id === data.collection_id) ?? null;
+  const volumes = await listAdminVolumes();
+  const volume = volumes.find((item) => item.id === data.volume_id) ?? null;
 
   return {
     ...(data as CatalogProductRow),
     collections: collection
       ? { id: collection.id, slug: collection.slug, name: collection.name }
+      : null,
+    volumes: volume
+      ? { id: volume.id, slug: volume.slug, name: volume.name }
       : null,
   };
 }
@@ -437,12 +457,26 @@ export async function updateAdminCollection(
 }
 
 export function getPublicProductPath(
-  product: Pick<AdminProductRow, "slug" | "status" | "collections">,
+  product: Pick<
+    AdminProductRow,
+    "slug" | "status" | "collections" | "volumes"
+  >,
 ): string | null {
   if (!["published", "coming_soon"].includes(product.status)) {
     return null;
   }
 
   const collectionSlug = product.collections?.slug ?? "originals";
+  const volumeSlug = product.volumes?.slug;
+
+  if (volumeSlug) {
+    return getEditionPathFromHierarchy({
+      collectionSlug,
+      volumeSlug,
+      editionSlug: product.slug,
+      preferLegacy: volumeSlug.endsWith("-default"),
+    });
+  }
+
   return `/collections/${collectionSlug}/${product.slug}`;
 }

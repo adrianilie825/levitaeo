@@ -8,6 +8,9 @@ export type Product = {
   edition: string;
   collection: string;
   collectionSlug?: string;
+  volumeId?: string;
+  volumeSlug?: string;
+  volumeName?: string;
   /** Major currency unit for display, e.g. 29 for EUR 29.00 */
   price: number;
   /** Minor currency unit (cents), aligned with Stripe and order_items.unit_amount */
