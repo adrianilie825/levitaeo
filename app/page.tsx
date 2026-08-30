@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import FeaturedArtwork from "@/components/FeaturedArtwork";
 import FeaturedCollections from "@/components/FeaturedCollections";
 import Footer from "@/components/Footer";
 import NavbarWithAuth from "@/components/NavbarWithAuth";
@@ -86,7 +85,6 @@ export default function Home() {
       <FeaturedCollections />
 
       <WhyLevitaeo />
-      <FeaturedArtwork />
       <Newsletter />
       <Footer />
     </main>

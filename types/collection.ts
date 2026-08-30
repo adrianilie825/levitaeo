@@ -10,4 +10,5 @@ export type Collection = {
   status: CollectionStatus;
   featured: boolean;
   order: number;
+  volumeCount?: number;
 };

@@ -1,5 +1,3 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import ArtworkDescription from "@/components/artwork/ArtworkDescription";
 import ArtworkGallery from "@/components/artwork/ArtworkGallery";
 import ArtworkPurchasePanel from "@/components/artwork/ArtworkPurchasePanel";
@@ -9,69 +7,21 @@ import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
 import NavbarWithAuth from "@/components/NavbarWithAuth";
 import Newsletter from "@/components/Newsletter";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { getRelatedProducts } from "@/lib/products/get-related-products";
 import { isProductPurchasable } from "@/lib/products/product-purchase";
 import { userOwnsActiveProduct } from "@/lib/purchases/ownership";
-import { getAuthenticatedUser } from "@/lib/auth";
-import {
-  getProductBySlug,
-  getProductPath,
-  getProductsByCollection,
-} from "@/lib/products-db";
-import { createPageMetadata, productJsonLd } from "@/lib/seo";
-import { siteConfig } from "@/lib/site";
+import { getProductPath } from "@/lib/products-db";
+import { productJsonLd } from "@/lib/seo";
+import type { Product } from "@/types/product";
 
-export const revalidate = 300;
-
-type PageProps = {
-  params: Promise<{ slug: string }>;
+type EditionPageContentProps = {
+  product: Product;
 };
 
-export async function generateStaticParams() {
-  const products = await getProductsByCollection("originals");
-
-  return products.map((product) => ({
-    slug: product.slug,
-  }));
-}
-
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const product = await getProductBySlug(slug);
-
-  if (!product) {
-    return {
-      title: "Edition Not Found",
-      robots: {
-        index: false,
-        follow: false,
-      },
-    };
-  }
-
-  const description =
-    product.description?.trim() ||
-    product.subtitle?.trim() ||
-    siteConfig.description;
-
-  return createPageMetadata({
-    title: product.title,
-    description,
-    path: getProductPath(product),
-    image: product.image,
-  });
-}
-
-export default async function OriginalsProductPage({ params }: PageProps) {
-  const { slug } = await params;
-  const product = await getProductBySlug(slug);
-
-  if (!product) {
-    notFound();
-  }
-
+export default async function EditionPageContent({
+  product,
+}: EditionPageContentProps) {
   const canPurchase = isProductPurchasable(product);
   const authenticatedUser = await getAuthenticatedUser();
   const isOwned = authenticatedUser
