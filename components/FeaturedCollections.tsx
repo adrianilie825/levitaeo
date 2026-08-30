@@ -5,7 +5,7 @@ export default async function FeaturedCollections() {
   const collections = await getFeaturedPublicCollections();
 
   return (
-    <section className="mx-auto max-w-7xl px-10 pt-8 pb-12 md:pt-12 md:pb-16">
+    <section className="mx-auto max-w-7xl px-6 pt-10 pb-14 md:pt-14 md:pb-20 lg:px-10">
       <div className="mb-14">
         <p className="text-sm uppercase tracking-[0.35em] text-neutral-500">
           Collections

@@ -1,6 +1,9 @@
 export default function Newsletter() {
   return (
-    <section className="border-t border-[#ECE8E2] bg-[#FAFAF8] py-12 md:py-16">
+    <section
+      id="journal"
+      className="border-t border-[#ECE8E2] bg-[#FAFAF8] py-12 md:py-16"
+    >
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-x-16 xl:gap-x-20">
           <div className="max-w-lg">

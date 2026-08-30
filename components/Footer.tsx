@@ -1,94 +1,157 @@
 import Link from "next/link";
-
-const exploreLinks = [
-  { label: "Collections", href: "/collections" },
-  { label: "Originals", href: "/collections/originals" },
-];
+import { siteConfig } from "@/lib/site";
 
 const linkClassName =
-  "transition-colors hover:text-[#111111] text-neutral-600";
+  "text-[13px] text-neutral-600 transition-colors hover:text-[#111111]";
 
-const unavailableClassName = "text-[13px] text-neutral-400";
+const comingSoonClassName = "text-[13px] text-neutral-400";
+
+type FooterLink =
+  | { kind: "link"; label: string; href: string }
+  | { kind: "coming-soon"; label: string };
+
+type FooterSection = {
+  title: string;
+  items: FooterLink[];
+};
+
+const footerSections: FooterSection[] = [
+  {
+    title: "About",
+    items: [
+      { kind: "coming-soon", label: "Our Story" },
+      { kind: "coming-soon", label: "Philosophy" },
+      { kind: "coming-soon", label: "Editorial Process" },
+    ],
+  },
+  {
+    title: "Collect",
+    items: [
+      { kind: "link", label: "Digital Editions", href: "/collections" },
+      { kind: "coming-soon", label: "Prints" },
+      { kind: "coming-soon", label: "Membership" },
+    ],
+  },
+  {
+    title: "Support",
+    items: [
+      { kind: "coming-soon", label: "FAQ" },
+      { kind: "coming-soon", label: "Contact" },
+    ],
+  },
+  {
+    title: "Legal",
+    items: [
+      { kind: "coming-soon", label: "Privacy" },
+      { kind: "coming-soon", label: "Terms" },
+      { kind: "coming-soon", label: "Cookies" },
+    ],
+  },
+];
+
+function FooterNavItem({ item }: { item: FooterLink }) {
+  if (item.kind === "link") {
+    return (
+      <Link href={item.href} className={linkClassName}>
+        {item.label}
+      </Link>
+    );
+  }
+
+  return (
+    <span className={comingSoonClassName}>
+      {item.label}
+      <span aria-hidden="true"> — coming soon</span>
+    </span>
+  );
+}
 
 export default function Footer() {
+  const instagram = siteConfig.social.instagram.trim();
+  const pinterest = siteConfig.social.pinterest.trim();
+
   return (
-    <footer className="border-t border-[#ECE8E2] bg-[#FAFAF8]">
-      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-10 lg:py-14">
-        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr] lg:gap-10">
-          <div>
+    <footer className="w-full border-t border-[#ECE8E2] bg-[#FAFAF8]">
+      <div className="mx-auto max-w-7xl px-6 py-14 lg:px-10 lg:py-16">
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 xl:gap-10">
+          <div className="sm:col-span-2 xl:col-span-2">
             <p className="text-[13px] font-medium tracking-[0.32em] text-[#111111]">
               LEVITAEO
             </p>
             <p className="mt-4 max-w-xs text-[13px] leading-6 tracking-[0.04em] text-neutral-600">
-              Digital Art Worth Collecting
+              {siteConfig.tagline}
+            </p>
+            <p className="mt-4 max-w-xs text-[13px] leading-6 text-neutral-500">
+              A curated editorial destination for distinctive digital art.
             </p>
           </div>
 
-          <nav aria-label="Explore">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-neutral-500">
-              Explore
-            </p>
-            <ul className="mt-4 space-y-3">
-              {exploreLinks.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className={`text-[13px] ${linkClassName}`}>
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <span className={unavailableClassName}>Skylines — coming soon</span>
-              </li>
-              <li>
-                <span className={unavailableClassName}>Prints — coming soon</span>
-              </li>
-            </ul>
-          </nav>
+          {footerSections.map((section) => (
+            <nav key={section.title} aria-label={section.title}>
+              <p className="text-[11px] uppercase tracking-[0.28em] text-neutral-500">
+                {section.title}
+              </p>
+              <ul className="mt-4 space-y-3">
+                {section.items.map((item) => (
+                  <li key={item.label}>
+                    <FooterNavItem item={item} />
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
 
-          <nav aria-label="About">
+          <nav aria-label="Follow">
             <p className="text-[11px] uppercase tracking-[0.28em] text-neutral-500">
-              About
+              Follow
             </p>
             <ul className="mt-4 space-y-3">
               <li>
-                <span className={unavailableClassName}>Our Story — coming soon</span>
+                {instagram ? (
+                  <a
+                    href={instagram}
+                    className={linkClassName}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    Instagram
+                  </a>
+                ) : (
+                  <span className={comingSoonClassName}>
+                    Instagram
+                    <span aria-hidden="true"> — coming soon</span>
+                  </span>
+                )}
               </li>
               <li>
-                <span className={unavailableClassName}>Journal — coming soon</span>
+                {pinterest ? (
+                  <a
+                    href={pinterest}
+                    className={linkClassName}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    Pinterest
+                  </a>
+                ) : (
+                  <span className={comingSoonClassName}>
+                    Pinterest
+                    <span aria-hidden="true"> — coming soon</span>
+                  </span>
+                )}
               </li>
               <li>
-                <span className={unavailableClassName}>Membership — coming soon</span>
-              </li>
-              <li>
-                <span className={unavailableClassName}>Contact — coming soon</span>
-              </li>
-            </ul>
-          </nav>
-
-          <nav aria-label="Legal">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-neutral-500">
-              Legal
-            </p>
-            <ul className="mt-4 space-y-3">
-              <li>
-                <span className={unavailableClassName}>Terms — coming soon</span>
-              </li>
-              <li>
-                <span className={unavailableClassName}>Privacy — coming soon</span>
-              </li>
-              <li>
-                <span className={unavailableClassName}>Licensing — coming soon</span>
-              </li>
-              <li>
-                <span className={unavailableClassName}>Refund Policy — coming soon</span>
+                <Link href="/#journal" className={linkClassName}>
+                  Newsletter
+                </Link>
               </li>
             </ul>
           </nav>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-[#ECE8E2] pt-6 text-[12px] tracking-[0.06em] text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 Levitaeo</p>
-          <p>Social channels coming soon</p>
+        <div className="mt-12 flex flex-col gap-4 border-t border-[#ECE8E2] pt-8 text-[12px] tracking-[0.06em] text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} Levitaeo</p>
+          <p>Curated digital editions for collectors and spaces.</p>
         </div>
       </div>
     </footer>
