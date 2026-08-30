@@ -1,0 +1,226 @@
+import Image from "next/image";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import EditionPageContent from "@/components/catalog/EditionPageContent";
+import Footer from "@/components/Footer";
+import NavbarWithAuth from "@/components/NavbarWithAuth";
+import Newsletter from "@/components/Newsletter";
+import ProductCard from "@/components/ProductCard";
+import JsonLd from "@/components/JsonLd";
+import {
+  getPublicCollectionBySlug,
+  getPublicCollectionsWithStats,
+  listPublicVolumesForCollection,
+  resolveCollectionSegment,
+} from "@/lib/catalog/collections-public";
+import { getVolumePath } from "@/lib/catalog/paths";
+import {
+  getProductBySlug,
+  getProductPath,
+  getProductsByCollection,
+  getProductsByVolume,
+} from "@/lib/products-db";
+import { collectionPageJsonLd, createPageMetadata } from "@/lib/seo";
+import { siteConfig } from "@/lib/site";
+
+export const revalidate = 300;
+
+type PageProps = {
+  params: Promise<{ collectionSlug: string; slug: string }>;
+};
+
+export async function generateStaticParams() {
+  const collections = await getPublicCollectionsWithStats();
+  const params: Array<{ collectionSlug: string; slug: string }> = [];
+
+  for (const collection of collections) {
+    const volumes = await listPublicVolumesForCollection(collection.slug);
+
+    for (const volume of volumes) {
+      params.push({
+        collectionSlug: collection.slug,
+        slug: volume.slug,
+      });
+    }
+
+    if (collection.status === "active") {
+      const products = await getProductsByCollection(collection.slug);
+
+      for (const product of products) {
+        params.push({
+          collectionSlug: collection.slug,
+          slug: product.slug,
+        });
+      }
+    }
+  }
+
+  return params;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { collectionSlug, slug } = await params;
+  const resolved = await resolveCollectionSegment({ collectionSlug, segment: slug });
+
+  if (resolved?.kind === "volume") {
+    const collection = await getPublicCollectionBySlug(collectionSlug);
+
+    if (!collection) {
+      return {
+        title: "Volume Not Found",
+        robots: { index: false, follow: false },
+      };
+    }
+
+    return createPageMetadata({
+      title: `${resolved.volume.name} — ${collection.title}`,
+      description: resolved.volume.description,
+      path: getVolumePath(collection.slug, resolved.volume.slug),
+    });
+  }
+
+  const product = await getProductBySlug(slug);
+
+  if (!product) {
+    return {
+      title: "Edition Not Found",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const description =
+    product.description?.trim() ||
+    product.subtitle?.trim() ||
+    siteConfig.description;
+
+  return createPageMetadata({
+    title: product.title,
+    description,
+    path: getProductPath(product),
+    image: product.image,
+  });
+}
+
+export default async function CollectionSegmentPage({ params }: PageProps) {
+  const { collectionSlug, slug } = await params;
+  const collection = await getPublicCollectionBySlug(collectionSlug);
+
+  if (!collection) {
+    notFound();
+  }
+
+  const resolved = await resolveCollectionSegment({ collectionSlug, segment: slug });
+
+  if (!resolved) {
+    notFound();
+  }
+
+  if (resolved.kind === "edition") {
+    const product = await getProductBySlug(resolved.editionSlug);
+
+    if (!product || product.collectionSlug !== collection.slug) {
+      notFound();
+    }
+
+    return <EditionPageContent product={product} />;
+  }
+
+  const { volume } = resolved;
+  const editions = await getProductsByVolume(collection.slug, volume.slug);
+  const heroImage = editions[0]?.image ?? collection.image;
+  const editionLabel =
+    volume.editionCount === 1
+      ? "1 edition"
+      : `${volume.editionCount} editions`;
+
+  return (
+    <main className="bg-[#FAFAF8] text-[#111111]">
+      <JsonLd
+        data={collectionPageJsonLd({
+          name: `${volume.name} — Levitaeo ${collection.title}`,
+          description: volume.description,
+          path: getVolumePath(collection.slug, volume.slug),
+        })}
+      />
+      <NavbarWithAuth />
+
+      <section className="border-b border-[#ECE8E2]">
+        <div className="mx-auto max-w-7xl px-6 pt-10 pb-12 md:pt-14 md:pb-16 lg:px-10">
+          <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-x-16 xl:gap-x-20">
+            <div className="max-w-xl">
+              <p className="text-[11px] font-normal uppercase tracking-[0.44em] text-neutral-500">
+                {collection.title}
+              </p>
+
+              <h1 className="mt-6 text-[2.25rem] font-light leading-[1.1] tracking-[-0.02em] sm:text-4xl lg:text-[3.25rem] lg:leading-[1.06]">
+                {volume.name}
+              </h1>
+
+              <p className="mt-6 text-[15px] leading-7 text-neutral-600 sm:text-base sm:leading-8">
+                {volume.description}
+              </p>
+
+              <p className="mt-8 text-[12px] tracking-[0.1em] text-neutral-500">
+                {editionLabel}
+              </p>
+            </div>
+
+            <div className="group relative mx-auto w-full max-w-[440px] lg:mx-0 lg:max-w-none lg:justify-self-end">
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[3px] border border-[#E8E4DE]">
+                <Image
+                  src={heroImage}
+                  alt={`${volume.name} volume artwork`}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                />
+              </div>
+
+              <div className="absolute bottom-5 left-5 border border-[#ECE8E2] bg-[#FAFAF8] px-4 py-3 lg:bottom-8 lg:left-8">
+                <p className="text-[10px] uppercase tracking-[0.38em] text-neutral-500">
+                  {collection.title}
+                </p>
+                <p className="mt-1.5 text-[11px] tracking-[0.12em] text-[#111111]">
+                  VOLUME
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10"
+        aria-labelledby="editions-heading"
+      >
+        <div className="max-w-2xl">
+          <p className="text-[11px] font-normal uppercase tracking-[0.44em] text-neutral-500">
+            The Editions
+          </p>
+
+          <h2
+            id="editions-heading"
+            className="mt-5 text-[2rem] font-light leading-[1.12] tracking-[-0.02em] sm:text-3xl"
+          >
+            Explore the volume.
+          </h2>
+
+          <p className="mt-5 text-[15px] leading-7 text-neutral-600 sm:text-base sm:leading-8">
+            A focused series of digital works, each developed as a distinct
+            visual edition.
+          </p>
+        </div>
+
+        <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-12 lg:grid-cols-3 lg:gap-x-10 lg:gap-y-14">
+          {editions.map((product) => (
+            <ProductCard key={product.slug} product={product} />
+          ))}
+        </div>
+      </section>
+
+      <Newsletter />
+      <Footer />
+    </main>
+  );
+}

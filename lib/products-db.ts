@@ -10,6 +10,7 @@ import {
   PRODUCT_FALLBACK_IMAGE,
   productCatalog,
 } from "@/lib/product-catalog";
+import { COLLECTION_PRESENTATION } from "@/lib/catalog/collection-presentation";
 import type { Collection } from "@/types/collection";
 import type { Product, ProductStatus } from "@/types/product";
 import { getEditionPathFromHierarchy } from "@/lib/catalog/paths";
@@ -60,51 +61,6 @@ type DbProductRow = {
   created_at: string;
   collections: DbCollectionRow | DbCollectionRow[] | null;
   volumes?: DbVolumeRow | DbVolumeRow[] | null;
-};
-
-const COLLECTION_PRESENTATION: Record<
-  string,
-  Pick<
-    Collection,
-    "shortDescription" | "image" | "href" | "status" | "featured" | "order"
-  >
-> = {
-  originals: {
-    shortDescription:
-      "Exclusive Levitaeo editions shaped by contrast, balance, and restraint.",
-    image: "/images/collections/originals.png",
-    href: "/collections/originals",
-    status: "active",
-    featured: true,
-    order: 1,
-  },
-  skylines: {
-    shortDescription:
-      "Minimal city portraits developed through line, rhythm, and atmosphere.",
-    image: "/images/collections/skylines.png",
-    href: "/collections/skylines",
-    status: "coming-soon",
-    featured: true,
-    order: 2,
-  },
-  nature: {
-    shortDescription:
-      "Calm visual studies inspired by landscape, light, and organic form.",
-    image: "/images/collections/nature.png",
-    href: "/collections/nature",
-    status: "coming-soon",
-    featured: true,
-    order: 3,
-  },
-  minimal: {
-    shortDescription:
-      "Restrained compositions exploring geometry, proportion, and space.",
-    image: "/images/collections/minimal.png",
-    href: "/collections/minimal",
-    status: "coming-soon",
-    featured: true,
-    order: 4,
-  },
 };
 
 const PRODUCT_PRESENTATION_DEFAULTS = {
@@ -514,7 +470,7 @@ export function getProductPath(product: Product): string {
       collectionSlug,
       volumeSlug: product.volumeSlug,
       editionSlug: product.slug,
-      preferLegacy: product.volumeSlug.endsWith("-default"),
+      preferLegacy: true,
     });
   }
 

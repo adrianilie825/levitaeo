@@ -2,7 +2,7 @@ import Footer from "@/components/Footer";
 import NavbarWithAuth from "@/components/NavbarWithAuth";
 import CollectionCard from "@/components/CollectionCard";
 import JsonLd from "@/components/JsonLd";
-import { getCollections } from "@/lib/products-db";
+import { getPublicCollectionsWithStats } from "@/lib/catalog/collections-public";
 import { collectionPageJsonLd, createPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
@@ -16,7 +16,7 @@ export const metadata = createPageMetadata({
 });
 
 export default async function CollectionsPage() {
-  const collections = await getCollections();
+  const collections = await getPublicCollectionsWithStats();
 
   return (
     <main className="bg-[#FAFAF8] text-[#111111]">

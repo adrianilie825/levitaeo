@@ -62,12 +62,20 @@ function FeaturedCollectionCard({
           {collection.shortDescription}
         </p>
 
+        {typeof collection.volumeCount === "number" ? (
+          <p className="mt-4 text-[12px] tracking-[0.12em] text-white/65">
+            {collection.volumeCount === 1
+              ? "1 volume"
+              : `${collection.volumeCount} volumes`}
+          </p>
+        ) : null}
+
         <div
-          className={`mt-8 text-white ${
+          className={`mt-8 text-[12px] uppercase tracking-[0.14em] text-white ${
             isActive ? "transition group-hover:translate-x-2" : ""
           }`}
         >
-          {isActive ? "View Collection →" : "Coming Soon"}
+          {isActive ? "Explore Collection →" : "Coming Soon"}
         </div>
       </div>
     </>
@@ -131,6 +139,14 @@ function GridCollectionCard({
       <p className="mt-3 max-w-md text-[15px] leading-7 text-neutral-600">
         {collection.description}
       </p>
+
+      {typeof collection.volumeCount === "number" ? (
+        <p className="mt-4 text-[12px] tracking-[0.1em] text-neutral-500">
+          {collection.volumeCount === 1
+            ? "1 volume"
+            : `${collection.volumeCount} volumes`}
+        </p>
+      ) : null}
 
       {isActive ? (
         <Link
