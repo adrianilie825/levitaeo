@@ -217,41 +217,68 @@ export async function POST(request: Request) {
 
     await ensureCheckoutProductTaxCode(stripePriceId);
 
-    const session = await stripe.checkout.sessions.create(
-      buildCheckoutSessionParams({
-        mode: "payment",
-        client_reference_id: authenticatedUser.id,
-        line_items: [
-          {
-            price: stripePriceId,
-            quantity: 1,
-          },
-        ],
-        success_url: `${siteConfig.url}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${siteConfig.url}${productPath}?checkout=cancelled`,
-        billing_address_collection: "auto",
-        allow_promotion_codes: true,
-        locale: "auto",
-        ...(customerEmail ? { customer_email: customerEmail } : {}),
-        metadata: {
-          productId: product.id ?? "",
-          productSlug: product.slug,
-          productTitle: product.title,
-          productEdition: product.edition,
-          collection: product.collection,
-          purchaseType: "digital-artwork",
-          supabaseUserId: authenticatedUser.id,
-        },
-        payment_intent_data: {
+    let session: Stripe.Checkout.Session;
+
+    try {
+      session = await stripe.checkout.sessions.create(
+        buildCheckoutSessionParams({
+          mode: "payment",
+          client_reference_id: authenticatedUser.id,
+          line_items: [
+            {
+              price: stripePriceId,
+              quantity: 1,
+            },
+          ],
+          success_url: `${siteConfig.url}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${siteConfig.url}${productPath}?checkout=cancelled`,
+          billing_address_collection: "auto",
+          allow_promotion_codes: true,
+          locale: "auto",
+          ...(customerEmail ? { customer_email: customerEmail } : {}),
           metadata: {
             productId: product.id ?? "",
             productSlug: product.slug,
+            productTitle: product.title,
+            productEdition: product.edition,
+            collection: product.collection,
             purchaseType: "digital-artwork",
             supabaseUserId: authenticatedUser.id,
           },
-        },
-      }),
-    );
+          payment_intent_data: {
+            metadata: {
+              productId: product.id ?? "",
+              productSlug: product.slug,
+              purchaseType: "digital-artwork",
+              supabaseUserId: authenticatedUser.id,
+            },
+          },
+        }),
+      );
+    } catch (error) {
+      const stripeError = getStripeErrorDetails(error);
+
+      if (stripeError?.type === "StripeInvalidRequestError") {
+        logCheckoutDiagnostic(
+          "Stripe Checkout Session creation failed after tax preparation.",
+          sessionLogContext,
+          {
+            stripeErrorType: stripeError.type,
+            stripeErrorCode: stripeError.code ?? null,
+            stripeErrorMessage: stripeError.message,
+            stripeStatusCode: stripeError.statusCode ?? null,
+          },
+        );
+
+        return checkoutErrorResponse(
+          502,
+          "Checkout could not be started because the Stripe price for this edition is invalid.",
+          "stripe_invalid_request",
+        );
+      }
+
+      throw error;
+    }
 
     if (!session.url) {
       logCheckoutDiagnostic(

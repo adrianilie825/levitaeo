@@ -119,20 +119,18 @@ export async function syncAdminProductWithStripe(
     createdPrice: result.createdPrice,
   });
 
-  if (outcome !== "skipped") {
-    try {
-      await updateAdminProductStripeIds(product.id, {
-        stripe_product_id: result.stripeProductId,
-        stripe_price_id: result.stripePriceId,
-      });
-    } catch {
-      return {
-        ...baseEvent,
-        outcome: "failed",
-        message:
-          "Stripe resources were synced but the edition record could not be updated.",
-      };
-    }
+  try {
+    await updateAdminProductStripeIds(product.id, {
+      stripe_product_id: result.stripeProductId,
+      stripe_price_id: result.stripePriceId,
+    });
+  } catch {
+    return {
+      ...baseEvent,
+      outcome: "failed",
+      message:
+        "Stripe resources were synced but the edition record could not be updated.",
+    };
   }
 
   return {

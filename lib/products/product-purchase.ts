@@ -4,10 +4,16 @@ import { getStripePriceId } from "@/lib/stripe-products";
 import type { Product } from "@/types/product";
 
 export function hasConfiguredStripePrice(product: Product): boolean {
-  const stripePriceId =
-    product.stripePriceId?.trim() || getStripePriceId(product.slug);
+  if (product.stripePriceId?.trim()) {
+    return true;
+  }
 
-  return Boolean(stripePriceId);
+  // Legacy env fallback applies only to static catalog entries without DB Stripe IDs.
+  if (!product.id) {
+    return Boolean(getStripePriceId(product.slug));
+  }
+
+  return false;
 }
 
 export function isProductPurchasable(product: Product): boolean {

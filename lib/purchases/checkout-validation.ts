@@ -2,11 +2,39 @@ import "server-only";
 
 import { getStripePriceId } from "@/lib/stripe-products";
 import { getProductBySlug } from "@/lib/products-db";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import type { Product } from "@/types/product";
 
 export type CheckoutProductValidation =
   | { ok: true; product: Product; stripePriceId: string }
   | { ok: false; status: number; error: string };
+
+async function resolveCheckoutStripePriceId(
+  product: Product,
+): Promise<string | null> {
+  if (isSupabaseConfigured() && product.id) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("products")
+      .select("stripe_price_id")
+      .eq("id", product.id)
+      .maybeSingle();
+
+    if (!error) {
+      const adminPriceId = data?.stripe_price_id?.trim();
+      if (adminPriceId) {
+        return adminPriceId;
+      }
+    }
+  }
+
+  const catalogPriceId = product.stripePriceId?.trim();
+  if (catalogPriceId) {
+    return catalogPriceId;
+  }
+
+  return getStripePriceId(product.slug) ?? null;
+}
 
 export async function validateCheckoutProduct(
   productSlug: string,
@@ -39,8 +67,7 @@ export async function validateCheckoutProduct(
     };
   }
 
-  const stripePriceId =
-    product.stripePriceId?.trim() || getStripePriceId(product.slug);
+  const stripePriceId = await resolveCheckoutStripePriceId(product);
 
   if (!stripePriceId) {
     return {
@@ -53,7 +80,10 @@ export async function validateCheckoutProduct(
 
   return {
     ok: true,
-    product,
+    product: {
+      ...product,
+      stripePriceId,
+    },
     stripePriceId,
   };
 }
