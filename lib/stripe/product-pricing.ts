@@ -1,7 +1,11 @@
 import "server-only";
 
+import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
-import { STRIPE_DIGITAL_ARTWORK_TAX_CODE } from "@/lib/stripe/constants";
+import {
+  STRIPE_DIGITAL_ARTWORK_TAX_CODE,
+  isStripeManagedPaymentsEnabled,
+} from "@/lib/stripe/constants";
 import { ensureStripeProductTaxCode } from "@/lib/stripe/checkout-prep";
 
 export const SUPPORTED_STRIPE_CURRENCIES = ["EUR", "USD", "GBP", "CHF"] as const;
@@ -59,6 +63,44 @@ function normalizeCurrency(currency: string): SupportedStripeCurrency | null {
   return normalized as SupportedStripeCurrency;
 }
 
+export function getStripePriceProductId(price: Stripe.Price): string {
+  return typeof price.product === "string" ? price.product : price.product.id;
+}
+
+function isExistingPriceCheckoutCompatible(
+  price: Stripe.Price,
+  input: {
+    priceCents: number;
+    currency: SupportedStripeCurrency;
+    stripeProductId: string;
+  },
+): boolean {
+  if (!price.active || price.type !== "one_time") {
+    return false;
+  }
+
+  if (price.unit_amount !== input.priceCents) {
+    return false;
+  }
+
+  if (price.currency.toUpperCase() !== input.currency) {
+    return false;
+  }
+
+  if (getStripePriceProductId(price) !== input.stripeProductId) {
+    return false;
+  }
+
+  if (
+    isStripeManagedPaymentsEnabled() &&
+    price.tax_behavior !== "exclusive"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export function validateStripeProductPricing(input: {
   priceCents: number;
   currency: string;
@@ -101,19 +143,37 @@ export async function getStripePriceSyncStatus(
     };
   }
 
+  const pricingValidation = validateStripeProductPricing({
+    priceCents: input.priceCents,
+    currency: input.currency,
+  });
+
+  if (!pricingValidation.ok) {
+    return {
+      configured: Boolean(stripePriceId),
+      inSync: false,
+      stripeProductId,
+      stripePriceId,
+    };
+  }
+
   try {
     const stripe = getStripe();
     const price = await stripe.prices.retrieve(stripePriceId);
-
+    const resolvedProductId = getStripePriceProductId(price);
     const inSync =
-      price.unit_amount === input.priceCents &&
-      price.currency.toUpperCase() === input.currency.trim().toUpperCase() &&
-      price.active;
+      Boolean(stripeProductId) &&
+      isExistingPriceCheckoutCompatible(price, {
+        priceCents: input.priceCents,
+        currency: pricingValidation.currency,
+        stripeProductId: stripeProductId!,
+      }) &&
+      resolvedProductId === stripeProductId;
 
     return {
       configured: true,
       inSync,
-      stripeProductId: stripeProductId ?? (typeof price.product === "string" ? price.product : price.product.id),
+      stripeProductId: stripeProductId ?? resolvedProductId,
       stripePriceId,
     };
   } catch {
@@ -181,6 +241,7 @@ export async function ensureStripePriceForProduct(
       const product = await stripe.products.create(productPayload);
       stripeProductId = product.id;
       createdProduct = true;
+      await ensureStripeProductTaxCode(stripe, stripeProductId);
     } catch {
       return {
         ok: false,
@@ -197,11 +258,16 @@ export async function ensureStripePriceForProduct(
       const existingPrice = await stripe.prices.retrieve(existingPriceId);
 
       if (
-        existingPrice.unit_amount === input.priceCents &&
-        existingPrice.currency.toUpperCase() === validation.currency &&
-        existingPrice.active
+        isExistingPriceCheckoutCompatible(existingPrice, {
+          priceCents: input.priceCents,
+          currency: validation.currency,
+          stripeProductId,
+        })
       ) {
-        await ensureStripeProductTaxCode(stripe, stripeProductId);
+        await ensureStripeProductTaxCode(
+          stripe,
+          getStripePriceProductId(existingPrice),
+        );
 
         return {
           ok: true,
@@ -212,7 +278,7 @@ export async function ensureStripePriceForProduct(
         };
       }
     } catch {
-      // Fall through and create a replacement price.
+      // Fall through and create a replacement price on the canonical product.
     }
   }
 
@@ -224,6 +290,8 @@ export async function ensureStripePriceForProduct(
       tax_behavior: "exclusive",
       metadata,
     });
+
+    await ensureStripeProductTaxCode(stripe, stripeProductId);
 
     return {
       ok: true,
