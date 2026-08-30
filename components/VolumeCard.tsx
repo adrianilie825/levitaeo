@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { PRODUCT_FALLBACK_IMAGE } from "@/lib/product-catalog";
 import type { PublicVolumeSummary } from "@/lib/catalog/collections-public";
 
 type VolumeCardProps = {
@@ -16,16 +18,25 @@ export default function VolumeCard({
     volume.editionCount === 1
       ? "1 edition"
       : `${volume.editionCount} editions`;
+  const coverImage = volume.coverImage ?? PRODUCT_FALLBACK_IMAGE;
 
   const imageBlock = (
     <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[3px] border border-[#E8E4DE] bg-[#F7F5F1]">
-      <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/55 via-black/10 to-transparent p-6">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.38em] text-white/70">
-            {collectionTitle}
-          </p>
-          <p className="mt-2 text-2xl font-light text-white">{volume.name}</p>
-        </div>
+      <Image
+        src={coverImage}
+        alt={`${volume.name} volume cover`}
+        fill
+        sizes="(max-width: 768px) 100vw, 50vw"
+        className={`object-cover transition-transform duration-700 ease-out ${
+          collectionActive ? "group-hover:scale-[1.03]" : "opacity-90"
+        }`}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-6">
+        <p className="text-[10px] uppercase tracking-[0.38em] text-white/70">
+          {collectionTitle}
+        </p>
+        <p className="mt-2 text-2xl font-light text-white">{volume.name}</p>
       </div>
     </div>
   );

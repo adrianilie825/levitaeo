@@ -2,11 +2,12 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import EditionPageContent from "@/components/catalog/EditionPageContent";
+import EditionCard from "@/components/catalog/EditionCard";
 import Footer from "@/components/Footer";
 import NavbarWithAuth from "@/components/NavbarWithAuth";
 import Newsletter from "@/components/Newsletter";
-import ProductCard from "@/components/ProductCard";
 import JsonLd from "@/components/JsonLd";
+import { getAuthenticatedUser } from "@/lib/auth";
 import {
   getPublicCollectionBySlug,
   getPublicCollectionsWithStats,
@@ -20,6 +21,7 @@ import {
   getProductsByCollection,
   getProductsByVolume,
 } from "@/lib/products-db";
+import { userOwnsActiveProduct } from "@/lib/purchases/ownership";
 import { collectionPageJsonLd, createPageMetadata } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 
@@ -127,7 +129,21 @@ export default async function CollectionSegmentPage({ params }: PageProps) {
 
   const { volume } = resolved;
   const editions = await getProductsByVolume(collection.slug, volume.slug);
-  const heroImage = editions[0]?.image ?? collection.image;
+  const authenticatedUser = await getAuthenticatedUser();
+  const editionsWithOwnership = await Promise.all(
+    editions.map(async (product) => ({
+      product,
+      isOwned: authenticatedUser
+        ? await userOwnsActiveProduct({
+            userId: authenticatedUser.id,
+            productSlug: product.slug,
+            productId: product.id,
+          })
+        : false,
+    })),
+  );
+  const heroImage =
+    volume.coverImage ?? editions[0]?.image ?? collection.image;
   const editionLabel =
     volume.editionCount === 1
       ? "1 edition"
@@ -213,8 +229,13 @@ export default async function CollectionSegmentPage({ params }: PageProps) {
         </div>
 
         <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-12 lg:grid-cols-3 lg:gap-x-10 lg:gap-y-14">
-          {editions.map((product) => (
-            <ProductCard key={product.slug} product={product} />
+          {editionsWithOwnership.map(({ product, isOwned }) => (
+            <EditionCard
+              key={product.slug}
+              product={product}
+              isAuthenticated={Boolean(authenticatedUser)}
+              isOwned={isOwned}
+            />
           ))}
         </div>
       </section>
