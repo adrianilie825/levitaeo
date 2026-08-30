@@ -19,9 +19,10 @@ const footerSections: FooterSection[] = [
   {
     title: "About",
     items: [
-      { kind: "coming-soon", label: "Our Story" },
-      { kind: "coming-soon", label: "Philosophy" },
-      { kind: "coming-soon", label: "Editorial Process" },
+      { kind: "link", label: "About Levitaeo", href: "/about" },
+      { kind: "link", label: "Our Story", href: "/about/our-story" },
+      { kind: "link", label: "Philosophy", href: "/about/philosophy" },
+      { kind: "link", label: "Editorial Process", href: "/about/editorial-process" },
     ],
   },
   {
@@ -35,8 +36,8 @@ const footerSections: FooterSection[] = [
   {
     title: "Support",
     items: [
-      { kind: "coming-soon", label: "FAQ" },
-      { kind: "coming-soon", label: "Contact" },
+      { kind: "link", label: "FAQ", href: "/faq" },
+      { kind: "link", label: "Contact", href: "/contact" },
     ],
   },
   {
