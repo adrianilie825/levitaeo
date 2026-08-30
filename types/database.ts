@@ -17,9 +17,20 @@ export type CatalogCollectionRow = {
   created_at: string;
 };
 
+export type CatalogVolumeRow = {
+  id: string;
+  collection_id: string;
+  slug: string;
+  name: string;
+  description: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export type CatalogProductRow = {
   id: string;
   collection_id: string;
+  volume_id: string;
   slug: string;
   title: string;
   subtitle: string;
@@ -227,6 +238,12 @@ export type Database = {
         Row: CatalogCollectionRow;
         Insert: Partial<CatalogCollectionRow>;
         Update: Partial<CatalogCollectionRow>;
+        Relationships: [];
+      };
+      volumes: {
+        Row: CatalogVolumeRow;
+        Insert: Partial<CatalogVolumeRow>;
+        Update: Partial<CatalogVolumeRow>;
         Relationships: [];
       };
       products: {

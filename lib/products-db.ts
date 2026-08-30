@@ -12,6 +12,7 @@ import {
 } from "@/lib/product-catalog";
 import type { Collection } from "@/types/collection";
 import type { Product, ProductStatus } from "@/types/product";
+import { getEditionPathFromHierarchy } from "@/lib/catalog/paths";
 
 export const CATALOG_REVALIDATE_SECONDS = 300;
 export const CATALOG_PRODUCTS_TAG = "catalog-products";
@@ -27,9 +28,20 @@ type DbCollectionRow = {
   created_at: string;
 };
 
+type DbVolumeRow = {
+  id: string;
+  collection_id: string;
+  slug: string;
+  name: string;
+  description: string;
+  sort_order: number;
+  created_at: string;
+};
+
 type DbProductRow = {
   id: string;
   collection_id: string;
+  volume_id: string;
   slug: string;
   title: string;
   subtitle: string;
@@ -47,6 +59,7 @@ type DbProductRow = {
   sort_order: number;
   created_at: string;
   collections: DbCollectionRow | DbCollectionRow[] | null;
+  volumes?: DbVolumeRow | DbVolumeRow[] | null;
 };
 
 const COLLECTION_PRESENTATION: Record<
@@ -140,8 +153,17 @@ function mapDbStatus(status: string): ProductStatus {
   return status === "published" ? "available" : "coming-soon";
 }
 
+function getJoinedVolume(row: DbProductRow): DbVolumeRow | undefined {
+  if (!row.volumes) {
+    return undefined;
+  }
+
+  return Array.isArray(row.volumes) ? row.volumes[0] : row.volumes;
+}
+
 function mapDbProduct(row: DbProductRow): Product {
   const collection = getJoinedCollection(row);
+  const volume = getJoinedVolume(row);
   const collectionName = collection?.name ?? "Originals";
   const collectionSlug = collection?.slug ?? "originals";
   const productStatus = mapDbStatus(row.status);
@@ -153,6 +175,9 @@ function mapDbProduct(row: DbProductRow): Product {
     subtitle: row.subtitle?.trim() || undefined,
     edition: row.edition,
     collection: collectionName,
+    volumeId: volume?.id ?? row.volume_id,
+    volumeSlug: volume?.slug,
+    volumeName: volume?.name,
     priceCents: row.price_cents,
     price: row.price_cents / 100,
     currency: row.currency.toUpperCase() === "EUR" ? "EUR" : "EUR",
@@ -240,7 +265,7 @@ async function fetchProductBySlugFromDb(
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, collection_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, created_at",
+      "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, created_at",
     )
     .eq("slug", normalizedSlug)
     .in("status", ["published", "coming_soon"])
@@ -277,10 +302,23 @@ async function fetchProductBySlugFromDb(
     .eq("id", data.collection_id)
     .maybeSingle();
 
+  const { data: volumeData, error: volumeError } = await supabase
+    .from("volumes")
+    .select("id, collection_id, slug, name, description, sort_order, created_at")
+    .eq("id", data.volume_id)
+    .maybeSingle();
+
   if (collectionError && process.env.NODE_ENV === "development") {
     console.error(
       `[products-db] Failed to fetch collection for "${normalizedSlug}":`,
       collectionError.message,
+    );
+  }
+
+  if (volumeError && process.env.NODE_ENV === "development") {
+    console.error(
+      `[products-db] Failed to fetch volume for "${normalizedSlug}":`,
+      volumeError.message,
     );
   }
 
@@ -293,6 +331,7 @@ async function fetchProductBySlugFromDb(
   return mapDbProduct({
     ...(data as DbProductRow),
     collections: (collectionData as DbCollectionRow | null) ?? null,
+    volumes: (volumeData as DbVolumeRow | null) ?? null,
   });
 }
 
@@ -316,23 +355,26 @@ async function fetchProductsFromDb(): Promise<Product[]> {
 
   const supabase = createCatalogClient();
 
-  const [{ data: productsData, error: productsError }, { data: collectionsData, error: collectionsError }] =
+  const [{ data: productsData, error: productsError }, { data: collectionsData, error: collectionsError }, { data: volumesData, error: volumesError }] =
     await Promise.all([
       supabase
         .from("products")
         .select(
-          "id, collection_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, created_at",
+          "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, created_at",
         )
         .in("status", ["published", "coming_soon"])
         .order("sort_order", { ascending: true }),
       supabase
         .from("collections")
         .select("id, slug, name, description, sort_order, created_at"),
+      supabase
+        .from("volumes")
+        .select("id, collection_id, slug, name, description, sort_order, created_at"),
     ]);
 
-  if (productsError || collectionsError || !productsData) {
+  if (productsError || collectionsError || volumesError || !productsData) {
     if (process.env.NODE_ENV === "development") {
-      console.error("[products-db] Failed to fetch products:", productsError ?? collectionsError);
+      console.error("[products-db] Failed to fetch products:", productsError ?? collectionsError ?? volumesError);
     }
 
     return getFallbackProducts();
@@ -344,11 +386,15 @@ async function fetchProductsFromDb(): Promise<Product[]> {
       collection,
     ]),
   );
+  const volumesById = new Map(
+    ((volumesData ?? []) as DbVolumeRow[]).map((volume) => [volume.id, volume]),
+  );
 
   return (productsData as DbProductRow[]).map((row) =>
     mapDbProduct({
       ...row,
       collections: collectionsById.get(row.collection_id) ?? null,
+      volumes: volumesById.get(row.volume_id) ?? null,
     }),
   );
 }
@@ -444,8 +490,34 @@ export async function getCollectionBySlug(
   return collections.find((collection) => collection.slug === slug);
 }
 
+export async function getProductsByVolume(
+  collectionSlug: string,
+  volumeSlug: string,
+): Promise<Product[]> {
+  const normalizedCollection = collectionSlug.trim().toLowerCase();
+  const normalizedVolume = volumeSlug.trim().toLowerCase();
+  const products = await getCachedProducts();
+
+  return products.filter((product) => {
+    return (
+      product.collectionSlug?.toLowerCase() === normalizedCollection &&
+      product.volumeSlug?.toLowerCase() === normalizedVolume
+    );
+  });
+}
+
 export function getProductPath(product: Product): string {
   const collectionSlug = product.collectionSlug ?? "originals";
+
+  if (product.volumeSlug) {
+    return getEditionPathFromHierarchy({
+      collectionSlug,
+      volumeSlug: product.volumeSlug,
+      editionSlug: product.slug,
+      preferLegacy: product.volumeSlug.endsWith("-default"),
+    });
+  }
+
   return `/collections/${collectionSlug}/${product.slug}`;
 }
 

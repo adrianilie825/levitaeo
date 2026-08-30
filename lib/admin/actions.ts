@@ -12,6 +12,7 @@ import {
   updateAdminProductStatus,
   type ProductWriteInput,
 } from "@/lib/admin/catalog";
+import { getDefaultVolumeForCollection } from "@/lib/admin/volumes";
 import { revalidateCatalog } from "@/lib/admin/revalidate";
 import {
   isValidOptionalUrl,
@@ -105,6 +106,7 @@ function readProductInput(formData: FormData): {
   return {
     input: {
       collection_id: collectionId,
+      volume_id: String(formData.get("volume_id") ?? "").trim(),
       slug,
       title,
       subtitle,
@@ -125,6 +127,30 @@ function readProductInput(formData: FormData): {
   };
 }
 
+async function resolveEditionVolumeId(input: ProductWriteInput): Promise<{
+  volumeId: string | null;
+  fieldErrors?: Record<string, string>;
+}> {
+  const explicitVolumeId = input.volume_id?.trim();
+
+  if (explicitVolumeId) {
+    return { volumeId: explicitVolumeId };
+  }
+
+  const defaultVolume = await getDefaultVolumeForCollection(input.collection_id);
+
+  if (!defaultVolume) {
+    return {
+      volumeId: null,
+      fieldErrors: {
+        volume_id: "No volume exists for this collection. Create a volume first.",
+      },
+    };
+  }
+
+  return { volumeId: defaultVolume.id };
+}
+
 export async function createProductAction(
   _prevState: ActionState,
   formData: FormData,
@@ -136,6 +162,17 @@ export async function createProductAction(
   if (!input) {
     return { fieldErrors, error: "Please correct the highlighted fields." };
   }
+
+  const volumeResolution = await resolveEditionVolumeId(input);
+
+  if (!volumeResolution.volumeId) {
+    return {
+      fieldErrors: volumeResolution.fieldErrors ?? {},
+      error: "Please correct the highlighted fields.",
+    };
+  }
+
+  input.volume_id = volumeResolution.volumeId;
 
   try {
     if (await isProductSlugTaken(input.slug)) {
@@ -178,6 +215,17 @@ export async function updateProductAction(
   if (!input) {
     return { fieldErrors, error: "Please correct the highlighted fields." };
   }
+
+  const volumeResolution = await resolveEditionVolumeId(input);
+
+  if (!volumeResolution.volumeId) {
+    return {
+      fieldErrors: volumeResolution.fieldErrors ?? {},
+      error: "Please correct the highlighted fields.",
+    };
+  }
+
+  input.volume_id = volumeResolution.volumeId;
 
   try {
     if (await isProductSlugTaken(input.slug, productId)) {
