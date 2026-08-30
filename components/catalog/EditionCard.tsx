@@ -28,7 +28,7 @@ export default function EditionCard({
   const href = getProductPath(product);
 
   return (
-    <article className="group flex flex-col">
+    <article className="group flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1.5">
       <Link
         href={href}
         aria-label={`View ${product.title}`}
@@ -40,8 +40,8 @@ export default function EditionCard({
             alt={product.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className={`object-cover transition-transform duration-700 ease-out ${
-              isAvailable ? "group-hover:scale-[1.03]" : "opacity-80"
+            className={`object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              isAvailable ? "group-hover:scale-[1.04]" : "opacity-80"
             }`}
           />
         </div>

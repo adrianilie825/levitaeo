@@ -36,8 +36,8 @@ export const siteConfig = {
   creator: "Levitaeo Studio",
   defaultOgImage: "/images/collections/originals.png",
   social: {
-    instagram: "",
-    pinterest: "",
+    instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL?.trim() ?? "",
+    pinterest: process.env.NEXT_PUBLIC_PINTEREST_URL?.trim() ?? "",
   },
 } as const;
 

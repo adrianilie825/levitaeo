@@ -27,8 +27,8 @@ export default function VolumeCard({
         alt={`${volume.name} volume cover`}
         fill
         sizes="(max-width: 768px) 100vw, 50vw"
-        className={`object-cover transition-transform duration-700 ease-out ${
-          collectionActive ? "group-hover:scale-[1.03]" : "opacity-90"
+        className={`object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          collectionActive ? "group-hover:scale-[1.04]" : "opacity-90"
         }`}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
@@ -81,7 +81,7 @@ export default function VolumeCard({
 
   if (collectionActive) {
     return (
-      <article className="group transition-transform duration-300 ease-out hover:-translate-y-1">
+      <article className="group transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1.5">
         <Link
           href={volume.href}
           className="block overflow-hidden rounded-[3px]"

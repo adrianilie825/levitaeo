@@ -1,8 +1,9 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import EditionPageContent from "@/components/catalog/EditionPageContent";
 import EditionCard from "@/components/catalog/EditionCard";
+import EditorialEmptyState from "@/components/catalog/EditorialEmptyState";
+import VolumeHeader from "@/components/catalog/VolumeHeader";
 import Footer from "@/components/Footer";
 import NavbarWithAuth from "@/components/NavbarWithAuth";
 import Newsletter from "@/components/Newsletter";
@@ -142,12 +143,8 @@ export default async function CollectionSegmentPage({ params }: PageProps) {
         : false,
     })),
   );
-  const heroImage =
+  const coverImage =
     volume.coverImage ?? editions[0]?.image ?? collection.image;
-  const editionLabel =
-    volume.editionCount === 1
-      ? "1 edition"
-      : `${volume.editionCount} editions`;
 
   return (
     <main className="bg-[#FAFAF8] text-[#111111]">
@@ -160,54 +157,16 @@ export default async function CollectionSegmentPage({ params }: PageProps) {
       />
       <NavbarWithAuth />
 
-      <section className="border-b border-[#ECE8E2]">
-        <div className="mx-auto max-w-7xl px-6 pt-10 pb-12 md:pt-14 md:pb-16 lg:px-10">
-          <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-x-16 xl:gap-x-20">
-            <div className="max-w-xl">
-              <p className="text-[11px] font-normal uppercase tracking-[0.44em] text-neutral-500">
-                {collection.title}
-              </p>
-
-              <h1 className="mt-6 text-[2.25rem] font-light leading-[1.1] tracking-[-0.02em] sm:text-4xl lg:text-[3.25rem] lg:leading-[1.06]">
-                {volume.name}
-              </h1>
-
-              <p className="mt-6 text-[15px] leading-7 text-neutral-600 sm:text-base sm:leading-8">
-                {volume.description}
-              </p>
-
-              <p className="mt-8 text-[12px] tracking-[0.1em] text-neutral-500">
-                {editionLabel}
-              </p>
-            </div>
-
-            <div className="group relative mx-auto w-full max-w-[440px] lg:mx-0 lg:max-w-none lg:justify-self-end">
-              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[3px] border border-[#E8E4DE]">
-                <Image
-                  src={heroImage}
-                  alt={`${volume.name} volume artwork`}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                />
-              </div>
-
-              <div className="absolute bottom-5 left-5 border border-[#ECE8E2] bg-[#FAFAF8] px-4 py-3 lg:bottom-8 lg:left-8">
-                <p className="text-[10px] uppercase tracking-[0.38em] text-neutral-500">
-                  {collection.title}
-                </p>
-                <p className="mt-1.5 text-[11px] tracking-[0.12em] text-[#111111]">
-                  VOLUME
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <VolumeHeader
+        collection={collection}
+        volumeName={volume.name}
+        volumeDescription={volume.description}
+        coverImage={coverImage}
+        editionCount={volume.editionCount}
+      />
 
       <section
-        className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10"
+        className="mx-auto max-w-7xl px-6 py-14 md:py-20 lg:px-10"
         aria-labelledby="editions-heading"
       >
         <div className="max-w-2xl">
@@ -228,16 +187,24 @@ export default async function CollectionSegmentPage({ params }: PageProps) {
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-12 lg:grid-cols-3 lg:gap-x-10 lg:gap-y-14">
-          {editionsWithOwnership.map(({ product, isOwned }) => (
-            <EditionCard
-              key={product.slug}
-              product={product}
-              isAuthenticated={Boolean(authenticatedUser)}
-              isOwned={isOwned}
-            />
-          ))}
-        </div>
+        {editionsWithOwnership.length > 0 ? (
+          <div className="mt-14 grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-14 lg:grid-cols-3 lg:gap-x-10 lg:gap-y-16">
+            {editionsWithOwnership.map(({ product, isOwned }) => (
+              <EditionCard
+                key={product.slug}
+                product={product}
+                isAuthenticated={Boolean(authenticatedUser)}
+                isOwned={isOwned}
+              />
+            ))}
+          </div>
+        ) : (
+          <EditorialEmptyState
+            eyebrow="The Editions"
+            title="New editions are currently being curated."
+            description="This volume will soon feature a focused series of digital works developed with editorial restraint."
+          />
+        )}
       </section>
 
       <Newsletter />

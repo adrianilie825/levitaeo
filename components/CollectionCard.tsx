@@ -44,8 +44,8 @@ function FeaturedCollectionCard({
         alt={`${collection.title} collection`}
         fill
         sizes="(max-width: 768px) 100vw, 50vw"
-        className={`object-cover transition duration-700 ${
-          isActive ? "group-hover:scale-105" : "group-hover:scale-[1.02]"
+        className={`object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          isActive ? "group-hover:scale-[1.04]" : "group-hover:scale-[1.02]"
         }`}
       />
 
@@ -86,7 +86,7 @@ function FeaturedCollectionCard({
       <Link
         href={collection.href}
         aria-label={`View ${collection.title} collection`}
-        className="group relative block h-[470px] cursor-pointer overflow-hidden rounded-[34px]"
+        className="group relative block h-[470px] cursor-pointer overflow-hidden rounded-[34px] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1"
       >
         {content}
       </Link>
@@ -114,8 +114,8 @@ function GridCollectionCard({
         alt={`${collection.title} collection`}
         fill
         sizes="(max-width: 768px) 100vw, 50vw"
-        className={`object-cover transition-transform duration-700 ease-out ${
-          isActive ? "group-hover:scale-[1.03]" : "group-hover:scale-[1.02]"
+        className={`object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          isActive ? "group-hover:scale-[1.04]" : "group-hover:scale-[1.02]"
         }`}
       />
     </div>
@@ -165,7 +165,7 @@ function GridCollectionCard({
 
   if (isActive) {
     return (
-      <article className="group transition-transform duration-300 ease-out hover:-translate-y-1">
+      <article className="group transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1.5">
         <Link
           href={collection.href}
           className="block overflow-hidden rounded-[3px]"
