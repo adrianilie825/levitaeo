@@ -23,37 +23,32 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-6 pt-10 pb-8 md:pt-14 md:pb-12 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-14 lg:px-10 xl:gap-x-20">
         <div className="flex max-w-xl flex-col">
           <p className="text-[11px] font-normal uppercase tracking-[0.44em] text-neutral-500">
-            Curated Digital Editions
+            Levitaeo
           </p>
 
-          <h1 className="mt-10 text-[2.75rem] font-light leading-[1.08] tracking-[-0.025em] sm:text-[3.25rem] lg:mt-12 lg:text-[4.75rem] lg:leading-[1.02]">
-            Digital Art
+          <h1 className="mt-6 text-[2.75rem] font-light leading-[1.08] tracking-[-0.025em] sm:text-[3.25rem] lg:mt-8 lg:text-[4.75rem] lg:leading-[1.02]">
+            A curated editorial collection
             <br />
-            Worth Collecting
+            of premium digital art editions.
           </h1>
 
-          <p className="mt-9 max-w-[22rem] text-[15px] leading-[1.75] text-neutral-600 sm:max-w-md sm:text-base sm:leading-8 lg:mt-10 lg:max-w-lg lg:text-[17px]">
-            A curated collection of distinctive digital artworks created for
-            screens, spaces, and personal collections.
+          <p className="mt-8 max-w-[22rem] text-[15px] leading-[1.75] text-neutral-600 sm:max-w-md sm:text-base sm:leading-8 lg:max-w-lg lg:text-[17px]">
+            Levitaeo publishes distinctive digital artworks for screens,
+            interiors, and personal collections — selected with the care of a
+            fine editorial house.
           </p>
 
-          <div className="mt-11 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:mt-12">
+          <div className="mt-10 lg:mt-11">
             <Link
               href="/collections"
               className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-[#FAFAF8] hover:text-[#111111]"
             >
-              Explore the Collection
-            </Link>
-            <Link
-              href="/collections/originals"
-              className="inline-flex items-center justify-center border border-[#111111] bg-transparent px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] text-[#111111] transition-colors duration-300 hover:bg-[#111111] hover:text-white"
-            >
-              View Originals
+              Explore Collections
             </Link>
           </div>
 
-          <p className="mt-12 text-[11px] leading-relaxed tracking-[0.12em] text-neutral-500 lg:mt-14">
-            Independent editions · Instant access · Created for collectors
+          <p className="mt-10 text-[11px] leading-relaxed tracking-[0.12em] text-neutral-500 lg:mt-12">
+            Curated editions · Premium resolution · Instant access
           </p>
         </div>
 
