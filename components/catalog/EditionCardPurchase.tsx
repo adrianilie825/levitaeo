@@ -51,7 +51,7 @@ export default function EditionCardPurchase({
       <BuyButton
         productSlug={productSlug}
         loginReturnPath={productPath}
-        label="Buy Now"
+        label="Acquire Edition"
         className={compactButtonClassName}
       />
     );

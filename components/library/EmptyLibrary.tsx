@@ -7,13 +7,13 @@ export default function EmptyLibrary() {
         Your collection is empty.
       </h2>
       <p className="mx-auto mt-4 max-w-md text-[15px] leading-7 text-neutral-600">
-        Purchase an edition to begin collecting digital art.
+        Acquire an edition to begin your collection.
       </p>
       <Link
         href="/collections"
         className="mt-8 inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-transparent hover:text-[#111111]"
       >
-        Browse Collections
+        Explore Collections
       </Link>
     </section>
   );
