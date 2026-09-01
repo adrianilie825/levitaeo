@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { Product } from "@/types/product";
+import { SCHEMA_ORG_CONTEXT } from "@/lib/seo/json-ld-utils";
 import { siteConfig } from "@/lib/site";
 
 export const SITE_KEYWORDS = [
@@ -83,7 +84,7 @@ export function organizationJsonLd() {
   const sameAs = getSocialProfiles();
 
   return {
-    "@context": "https://schema.org",
+    "@context": SCHEMA_ORG_CONTEXT,
     "@type": "Organization",
     name: siteConfig.name,
     url: siteConfig.url,
@@ -94,7 +95,7 @@ export function organizationJsonLd() {
 
 export function websiteJsonLd() {
   return {
-    "@context": "https://schema.org",
+    "@context": SCHEMA_ORG_CONTEXT,
     "@type": "WebSite",
     name: siteConfig.name,
     url: siteConfig.url,
@@ -112,7 +113,7 @@ export function collectionPageJsonLd({
   path: string;
 }) {
   return {
-    "@context": "https://schema.org",
+    "@context": SCHEMA_ORG_CONTEXT,
     "@type": "CollectionPage",
     name,
     description,
@@ -131,7 +132,7 @@ export function productJsonLd(product: Product) {
   const url = createCanonical(path);
 
   const schema: Record<string, unknown> = {
-    "@context": "https://schema.org",
+    "@context": SCHEMA_ORG_CONTEXT,
     "@type": "Product",
     name: product.title,
     description: product.description,
@@ -157,4 +158,109 @@ export function productJsonLd(product: Product) {
   }
 
   return schema;
+}
+
+type JsonLdListItemInput = {
+  name: string;
+  url: string;
+};
+
+type JsonLdBreadcrumbInput = {
+  name: string;
+  path: string;
+};
+
+type HomeEditionJsonLdInput = {
+  title: string;
+  description: string;
+  image: string;
+  edition: string;
+  href: string;
+};
+
+export function breadcrumbListJsonLd(items: JsonLdBreadcrumbInput[]) {
+  return {
+    "@context": SCHEMA_ORG_CONTEXT,
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: createCanonical(item.path),
+    })),
+  };
+}
+
+export function itemListJsonLd(input: {
+  name?: string;
+  description?: string;
+  items: JsonLdListItemInput[];
+}) {
+  return {
+    "@context": SCHEMA_ORG_CONTEXT,
+    "@type": "ItemList",
+    ...(input.name ? { name: input.name } : {}),
+    ...(input.description ? { description: input.description } : {}),
+    itemListElement: input.items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: item.url.startsWith("http") ? item.url : createCanonical(item.url),
+    })),
+  };
+}
+
+export function editionProductJsonLd(edition: HomeEditionJsonLdInput) {
+  const url = edition.href.startsWith("http")
+    ? edition.href
+    : createCanonical(edition.href);
+
+  return {
+    "@context": SCHEMA_ORG_CONTEXT,
+    "@type": "Product",
+    name: edition.title,
+    description: edition.description,
+    image: resolveOgImage(edition.image),
+    sku: edition.edition,
+    url,
+    brand: {
+      "@type": "Brand",
+      name: siteConfig.name,
+    },
+    category: "Digital Art",
+  };
+}
+
+export function homePageJsonLd(input: {
+  collections: Array<{ title: string; href: string }>;
+  editions: HomeEditionJsonLdInput[];
+}) {
+  const homepageDescription =
+    "A curated editorial destination for distinctive digital art editions.";
+
+  return [
+    collectionPageJsonLd({
+      name: siteConfig.tagline,
+      description: homepageDescription,
+      path: "/",
+    }),
+    itemListJsonLd({
+      name: "Featured Collections",
+      description: "Editorial collections published by Levitaeo.",
+      items: input.collections.map((collection) => ({
+        name: collection.title,
+        url: collection.href,
+      })),
+    }),
+    itemListJsonLd({
+      name: "Featured Editions",
+      description: "Selected digital editions from the current publishing program.",
+      items: input.editions.map((edition) => ({
+        name: edition.title,
+        url: edition.href,
+      })),
+    }),
+    breadcrumbListJsonLd([{ name: siteConfig.name, path: "/" }]),
+    ...input.editions.map((edition) => editionProductJsonLd(edition)),
+  ];
 }
