@@ -1,17 +1,28 @@
 import "server-only";
 
+import fs from "fs";
+import path from "path";
 import {
   getPublicCollectionsWithStats,
   listPublicVolumesForCollection,
   type PublicVolumeSummary,
 } from "@/lib/catalog/collections-public";
+import type {
+  HeroCollectionTile,
+  HomeVolumeSummary,
+  HomepageEdition,
+} from "@/lib/home/homepage-types";
+import { PRODUCT_FALLBACK_IMAGE } from "@/lib/product-catalog";
 import {
+  formatProductPrice,
   getFeaturedProducts,
   getProductPath,
   getProductsByCollection,
 } from "@/lib/products-db";
 import type { Collection } from "@/types/collection";
 import type { Product } from "@/types/product";
+
+const HOME_VOLUME_IMAGE_FALLBACK = PRODUCT_FALLBACK_IMAGE;
 
 const HOMEPAGE_COLLECTION_SUPPLEMENTS: Collection[] = [
   {
@@ -44,38 +55,62 @@ const HOMEPAGE_COLLECTION_SUPPLEMENTS: Collection[] = [
   },
 ];
 
-export type HeroCollectionTile = {
-  slug: string;
-  title: string;
-  href: string;
-  image: string;
-};
+function resolveCatalogImageUrl(imageUrl?: string | null): string | null {
+  const trimmed = imageUrl?.trim();
+  if (!trimmed) {
+    return null;
+  }
 
-/** Hero grid order and per-tile images — replace `image` independently when assets exist. */
-export const HERO_COLLECTION_TILES: HeroCollectionTile[] = [
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  const normalized = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  const publicPath = path.join(
+    process.cwd(),
+    "public",
+    normalized.replace(/^\//, ""),
+  );
+
+  return fs.existsSync(publicPath) ? normalized : null;
+}
+
+export function resolveHomeVolumeCoverImage(input: {
+  volumeCoverImage?: string;
+  latestEditionImage?: string;
+}): string {
+  return (
+    resolveCatalogImageUrl(input.latestEditionImage) ??
+    resolveCatalogImageUrl(input.volumeCoverImage) ??
+    HOME_VOLUME_IMAGE_FALLBACK
+  );
+}
+
+/** Hero grid order and final collection cover images (all paths exist under /public). */
+const HERO_COLLECTION_TILES: HeroCollectionTile[] = [
   {
     slug: "architecture",
     title: "Architecture",
     href: "/collections/architecture",
-    image: "/images/collections/skylines.png",
+    image: "/images/collections/architecture-cover.png",
   },
   {
     slug: "nature",
     title: "Nature",
     href: "/collections/nature",
-    image: "/images/collections/nature.png",
+    image: "/images/collections/nature-cover.png",
   },
   {
     slug: "botanical",
     title: "Botanical",
     href: "/collections/botanical",
-    image: "/images/collections/nature.png",
+    image: "/images/collections/botanical-cover.png",
   },
   {
     slug: "minimal",
     title: "Minimal",
     href: "/collections/minimal",
-    image: "/images/collections/minimal.png",
+    image: "/images/collections/minimal-cover.png",
   },
 ];
 
@@ -87,17 +122,30 @@ export function getHeroCollectionTiles(
   return HERO_COLLECTION_TILES.map((tile) => {
     const collection = bySlug.get(tile.slug);
 
-    if (!collection) {
-      return tile;
-    }
-
     return {
-      slug: collection.slug,
-      title: collection.title,
-      href: collection.href,
+      slug: tile.slug,
+      title: collection?.title ?? tile.title,
+      href: collection?.href ?? tile.href,
       image: tile.image,
     };
   });
+}
+
+export function toHomeVolumeSummary(
+  volume: PublicVolumeSummary,
+  latestEditionImage?: string,
+): HomeVolumeSummary {
+  return {
+    name: volume.name,
+    description: volume.description,
+    href: volume.href,
+    coverImage: resolveHomeVolumeCoverImage({
+      volumeCoverImage: volume.coverImage,
+      latestEditionImage,
+    }),
+    editionCount: volume.editionCount,
+    collectionName: volume.collection?.name,
+  };
 }
 
 export async function getHomepageCollections(): Promise<Collection[]> {
@@ -120,13 +168,6 @@ export async function getHomepageLatestVolume(): Promise<PublicVolumeSummary | n
   return volumes[0] ?? null;
 }
 
-export type HomepageEdition = Pick<
-  Product,
-  "slug" | "title" | "edition" | "image" | "description" | "collection"
-> & {
-  href: string;
-};
-
 function isHomepageEdition(product: Product): boolean {
   return (
     product.status === "available" &&
@@ -143,6 +184,7 @@ function toHomepageEdition(product: Product): HomepageEdition {
     description: product.description,
     collection: product.collection,
     href: getProductPath(product),
+    priceLabel: formatProductPrice(product),
   };
 }
 

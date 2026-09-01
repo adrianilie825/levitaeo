@@ -3,6 +3,7 @@ import HomeFeaturedEditions from "@/components/home/HomeFeaturedEditions";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeHero from "@/components/home/HomeHero";
 import HomeLatestVolume from "@/components/home/HomeLatestVolume";
+import HomeSkylines from "@/components/home/HomeSkylines";
 import JsonLd from "@/components/JsonLd";
 import NavbarWithAuth from "@/components/NavbarWithAuth";
 import {
@@ -10,6 +11,7 @@ import {
   getHomepageCollections,
   getHomepageFeaturedEditions,
   getHomepageLatestVolume,
+  toHomeVolumeSummary,
 } from "@/lib/home/homepage-data";
 import { createPageMetadata, homePageJsonLd } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
@@ -57,9 +59,18 @@ export default async function Home() {
         featuredEdition={featuredEdition}
       />
 
-      {latestVolume ? <HomeLatestVolume volume={latestVolume} /> : null}
+      <HomeSkylines />
 
-      <HomeFeaturedEditions editions={editions} />
+      {latestVolume ? (
+        <HomeLatestVolume
+          volume={toHomeVolumeSummary(latestVolume, editions[0]?.image)}
+        />
+      ) : null}
+
+      <HomeFeaturedEditions
+        editions={editions}
+        viewAllHref={latestVolumeHref}
+      />
 
       <HomeEditorialQuote />
 

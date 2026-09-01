@@ -1,13 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { HomepageEdition } from "@/lib/home/homepage-data";
+import { HOME_EDITORIAL_CONTAINER } from "@/lib/home/homepage-layout";
+import type { HomepageEdition } from "@/lib/home/homepage-types";
 
 type HomeFeaturedEditionsProps = {
   editions: HomepageEdition[];
+  viewAllHref?: string;
 };
 
 export default function HomeFeaturedEditions({
   editions,
+  viewAllHref = "/collections/originals/originals-series",
 }: HomeFeaturedEditionsProps) {
   const featured = editions.slice(0, 6);
 
@@ -17,12 +20,12 @@ export default function HomeFeaturedEditions({
 
   return (
     <section className="border-t border-[#ECE8E2] bg-[#FAFAF8]">
-      <div className="mx-auto max-w-[1400px] px-6 py-24 md:py-32 lg:px-12 lg:py-40">
+      <div className={`${HOME_EDITORIAL_CONTAINER} pt-6 pb-20 md:pt-8 md:pb-24 lg:pb-28`}>
         <p className="text-[11px] uppercase tracking-[0.44em] text-neutral-500">
           Editions
         </p>
 
-        <div className="mt-16 grid gap-16 sm:grid-cols-2 lg:mt-20 lg:gap-x-12 lg:gap-y-24 xl:gap-x-16">
+        <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 md:mt-12 md:grid-cols-3 md:gap-x-6 md:gap-y-12 lg:mt-14 xl:grid-cols-6 xl:gap-x-5 xl:gap-y-14">
           {featured.map((edition) => (
             <Link
               key={edition.slug}
@@ -35,22 +38,32 @@ export default function HomeFeaturedEditions({
                   src={edition.image}
                   alt={edition.title}
                   fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 16vw"
                   className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.02]"
                 />
               </div>
 
-              <div className="mt-6">
+              <div className="mt-4 md:mt-5">
                 <p className="text-[11px] uppercase tracking-[0.28em] text-neutral-500">
                   Edition {edition.edition}
                 </p>
-                <h3 className="mt-2 text-xl font-light tracking-[-0.01em] text-[#111111] sm:text-2xl">
+                <h3 className="mt-2 text-base font-light tracking-[-0.01em] text-[#111111] sm:text-lg lg:text-xl">
                   {edition.title}
                 </h3>
+                <p className="mt-2 text-[14px] font-light tracking-[-0.01em] text-[#111111]">
+                  {edition.priceLabel}
+                </p>
               </div>
             </Link>
           ))}
         </div>
+
+        <Link
+          href={viewAllHref}
+          className="mt-10 inline-block text-[11px] uppercase tracking-[0.2em] text-[#111111] transition-colors hover:text-neutral-600 md:mt-12"
+        >
+          View All Editions →
+        </Link>
       </div>
     </section>
   );
