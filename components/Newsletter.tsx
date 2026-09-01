@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Newsletter() {
   return (
     <section
@@ -21,40 +23,28 @@ export default function Newsletter() {
             </p>
           </div>
 
-          <div className="lg:pt-2">
-            <form className="space-y-4" aria-label="Join the Levitaeo Journal">
-              <div>
-                <label
-                  htmlFor="journal-email"
-                  className="sr-only"
-                >
-                  Your email address
-                </label>
-                <input
-                  id="journal-email"
-                  type="email"
-                  name="email"
-                  placeholder="Your email address"
-                  autoComplete="email"
-                  disabled
-                  aria-disabled="true"
-                  className="w-full cursor-not-allowed border border-[#E8E4DE] bg-neutral-50 px-4 py-3.5 text-[14px] text-neutral-400 outline-none placeholder:text-neutral-400"
-                />
-              </div>
-
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                className="inline-flex w-full cursor-not-allowed items-center justify-center border border-[#ECE8E2] bg-neutral-50 px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] text-neutral-400 sm:w-auto"
+          <div className="lg:pt-10">
+            <p className="max-w-md text-[15px] leading-7 text-neutral-600">
+              The Journal is being prepared. Explore our published collections
+              or read about upcoming Membership in the meantime.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link
+                href="/collections"
+                className="text-[12px] tracking-[0.1em] text-neutral-600 underline-offset-4 transition-colors hover:text-[#111111] hover:underline"
               >
-                Coming soon
-              </button>
-
-              <p className="text-[11px] tracking-[0.08em] text-neutral-500">
-                Journal sign-up is not available yet.
-              </p>
-            </form>
+                Explore collections
+              </Link>
+              <span className="hidden text-neutral-300 sm:inline" aria-hidden="true">
+                ·
+              </span>
+              <Link
+                href="/faq#membership"
+                className="text-[12px] tracking-[0.1em] text-neutral-600 underline-offset-4 transition-colors hover:text-[#111111] hover:underline"
+              >
+                About Membership
+              </Link>
+            </div>
           </div>
         </div>
       </div>

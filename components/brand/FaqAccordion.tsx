@@ -57,7 +57,11 @@ export default function FaqAccordion({ topics }: FaqAccordionProps) {
   return (
     <div className="space-y-16">
       {topics.map((topic) => (
-        <section key={topic.id} aria-labelledby={`faq-${topic.id}`}>
+        <section
+          key={topic.id}
+          id={topic.id}
+          aria-labelledby={`faq-${topic.id}`}
+        >
           <div className="flex flex-wrap items-baseline gap-3">
             <h2
               id={`faq-${topic.id}`}

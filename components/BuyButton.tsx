@@ -105,7 +105,7 @@ export function SignInToPurchaseLink({
         "inline-flex w-full items-center justify-center border border-[#111111] bg-[#111111] px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-transparent hover:text-[#111111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
       }
     >
-      Sign in to buy
+      Sign in to collect
     </Link>
   );
 }

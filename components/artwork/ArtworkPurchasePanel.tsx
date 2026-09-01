@@ -21,9 +21,9 @@ type ArtworkPurchasePanelProps = {
 };
 
 const reassuranceItems = [
-  "Secure checkout",
-  "Instant digital download",
-  "Lifetime account access",
+  "Secure payment",
+  "Instant access to your edition",
+  "Permanent library access",
 ];
 
 export default function ArtworkPurchasePanel({
@@ -82,7 +82,7 @@ export default function ArtworkPurchasePanel({
           <BuyButton
             productSlug={product.slug}
             loginReturnPath={productPath}
-            label="Buy Now"
+            label="Acquire Edition"
             className="w-full"
           />
         ) : isAvailable ? (
@@ -93,10 +93,10 @@ export default function ArtworkPurchasePanel({
               aria-disabled="true"
               className="inline-flex w-full cursor-not-allowed items-center justify-center border border-neutral-300 bg-neutral-200 px-8 py-3.5 text-[11px] uppercase tracking-[0.18em] text-neutral-500"
             >
-              Buy Now
+              Acquire Edition
             </button>
             <p className="text-[12px] leading-5 text-neutral-600">
-              This edition is temporarily unavailable for purchase.
+              This edition is not currently available for collection.
             </p>
           </div>
         ) : (

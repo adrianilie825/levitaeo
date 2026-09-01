@@ -52,7 +52,7 @@ export default function ArtworkStickyBar({
           <BuyButton
             productSlug={product.slug}
             loginReturnPath={productPath}
-            label="Buy Now"
+            label="Acquire Edition"
             className="shrink-0 px-6 py-3"
           />
         ) : (
