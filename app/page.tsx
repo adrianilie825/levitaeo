@@ -1,5 +1,4 @@
 import HomeEditorialQuote from "@/components/home/HomeEditorialQuote";
-import HomeFeaturedCollections from "@/components/home/HomeFeaturedCollections";
 import HomeFeaturedEditions from "@/components/home/HomeFeaturedEditions";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeHero from "@/components/home/HomeHero";
@@ -57,8 +56,6 @@ export default async function Home() {
         heroCollections={heroCollections}
         featuredEdition={featuredEdition}
       />
-
-      <HomeFeaturedCollections collections={collections} />
 
       {latestVolume ? <HomeLatestVolume volume={latestVolume} /> : null}
 

@@ -20,35 +20,36 @@ export default function HomeHero({
   featuredEdition,
 }: HomeHeroProps) {
   return (
-    <section className="mx-auto max-w-[1400px] px-6 lg:px-12">
-      <div className="flex min-h-[calc(100svh-4.5rem)] flex-col gap-8 py-6 md:grid md:grid-cols-[42fr_58fr] md:items-stretch md:gap-x-6 md:py-4 lg:gap-x-8 xl:gap-x-10">
-        <div className="flex h-full min-h-0 flex-col justify-center md:justify-between md:py-2">
+    <section className="mx-auto max-w-[1440px] px-6 lg:px-12">
+      {/* Desktop: publishing house hero — collection covers ARE the hero */}
+      <div className="hidden h-[calc(100svh-4.5rem)] min-h-0 grid-cols-[40fr_60fr] items-start gap-x-10 lg:grid xl:gap-x-12">
+        <div className="flex h-full min-h-0 flex-col justify-between pt-1">
           <div>
-            <p className="text-[10px] font-normal uppercase tracking-[0.44em] text-neutral-500 sm:text-[11px]">
+            <p className="text-[11px] font-normal uppercase tracking-[0.44em] text-neutral-500">
               Levitaeo Editions
             </p>
 
-            <h1 className="mt-4 text-[2rem] font-light leading-[1.06] tracking-[-0.03em] sm:text-[2.5rem] lg:mt-5 lg:text-[3.25rem] xl:text-[3.75rem]">
+            <h1 className="mt-4 text-[2.875rem] font-light leading-[1.05] tracking-[-0.03em] xl:text-[3.25rem]">
               Art worth
               <br />
               collecting.
             </h1>
 
-            <p className="mt-6 max-w-[20rem] text-[14px] leading-[1.65] text-neutral-600 sm:max-w-[22rem] sm:text-[15px] sm:leading-[1.7] lg:mt-8 lg:max-w-[24rem] lg:text-[16px]">
-              A contemporary publishing house for digital editions — curated with
-              editorial restraint and made to live beautifully on your walls.
+            <p className="mt-6 max-w-[20rem] text-[15px] leading-[1.65] text-neutral-600 xl:max-w-[22rem]">
+              A contemporary publishing house for digital editions curated with
+              editorial restraint.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:items-center lg:mt-10">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/collections"
-                className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-8 py-3 text-[10px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-[#FAFAF8] hover:text-[#111111] sm:px-9 sm:py-3.5 sm:text-[11px]"
+                className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-8 py-3 text-[11px] uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:bg-[#FAFAF8] hover:text-[#111111]"
               >
                 Explore Collections
               </Link>
               <Link
                 href={latestVolumeHref}
-                className="inline-flex items-center justify-center border border-[#111111] bg-transparent px-8 py-3 text-[10px] uppercase tracking-[0.18em] text-[#111111] transition-colors duration-300 hover:bg-[#111111] hover:text-white sm:px-9 sm:py-3.5 sm:text-[11px]"
+                className="inline-flex items-center justify-center border border-[#111111] bg-transparent px-8 py-3 text-[11px] uppercase tracking-[0.18em] text-[#111111] transition-colors duration-300 hover:bg-[#111111] hover:text-white"
               >
                 Latest Volume
               </Link>
@@ -56,13 +57,13 @@ export default function HomeHero({
           </div>
 
           {featuredEdition ? (
-            <div className="mt-10 md:mt-0">
+            <div className="pb-1">
               <p className="text-[10px] uppercase tracking-[0.32em] text-neutral-500">
                 Featured this week
               </p>
               <Link
                 href={featuredEdition.href}
-                className="mt-3 inline-block text-[13px] tracking-[0.04em] text-[#111111] transition-colors hover:text-neutral-600"
+                className="mt-2.5 inline-block text-[13px] tracking-[0.04em] text-[#111111] transition-colors hover:text-neutral-600"
               >
                 {featuredEdition.title}
                 <span className="ml-2 text-[11px] uppercase tracking-[0.18em] text-neutral-500">
@@ -70,15 +71,67 @@ export default function HomeHero({
                 </span>
               </Link>
             </div>
-          ) : null}
+          ) : (
+            <div className="pb-1" aria-hidden="true" />
+          )}
         </div>
 
-        <div className="flex min-h-0 flex-1 items-stretch lg:h-full lg:min-h-0">
-          <div className="grid h-[min(52vh,420px)] w-full min-h-0 grid-cols-2 grid-rows-2 gap-[2px] sm:h-[min(56vh,480px)] md:h-full md:max-h-[calc(100svh-5.5rem)]">
-            {heroCollections.map((collection) => (
-              <HeroCollectionTileLink key={collection.slug} tile={collection} />
-            ))}
+        <div className="grid h-full min-h-0 grid-cols-2 grid-rows-2 gap-0">
+          {heroCollections.map((collection) => (
+            <HeroCollectionTileLink key={collection.slug} tile={collection} />
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile fallback */}
+      <div className="flex flex-col gap-8 py-8 lg:hidden">
+        <div>
+          <p className="text-[11px] font-normal uppercase tracking-[0.44em] text-neutral-500">
+            Levitaeo Editions
+          </p>
+          <h1 className="mt-4 text-[2.25rem] font-light leading-[1.06] tracking-[-0.03em]">
+            Art worth
+            <br />
+            collecting.
+          </h1>
+          <p className="mt-6 max-w-[22rem] text-[15px] leading-[1.65] text-neutral-600">
+            A contemporary publishing house for digital editions curated with
+            editorial restraint.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/collections"
+              className="inline-flex items-center justify-center border border-[#111111] bg-[#111111] px-8 py-3 text-[11px] uppercase tracking-[0.18em] text-white"
+            >
+              Explore Collections
+            </Link>
+            <Link
+              href={latestVolumeHref}
+              className="inline-flex items-center justify-center border border-[#111111] bg-transparent px-8 py-3 text-[11px] uppercase tracking-[0.18em] text-[#111111]"
+            >
+              Latest Volume
+            </Link>
           </div>
+          {featuredEdition ? (
+            <div className="mt-8">
+              <p className="text-[10px] uppercase tracking-[0.32em] text-neutral-500">
+                Featured this week
+              </p>
+              <Link
+                href={featuredEdition.href}
+                className="mt-2.5 inline-block text-[13px] text-[#111111]"
+              >
+                {featuredEdition.title}
+              </Link>
+            </div>
+          ) : null}
+        </div>
+        <div className="grid grid-cols-2 gap-0">
+          {heroCollections.map((collection) => (
+            <div key={collection.slug} className="relative aspect-[4/5]">
+              <HeroCollectionTileLink tile={collection} />
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -90,23 +143,25 @@ function HeroCollectionTileLink({ tile }: { tile: HeroCollectionTile }) {
     <Link
       href={tile.href}
       aria-label={`Explore ${tile.title} collection`}
-      className="group relative block min-h-0 overflow-hidden bg-neutral-200"
+      className="group relative block h-full min-h-0 overflow-hidden bg-neutral-300"
     >
       <Image
         src={tile.image}
         alt={`${tile.title} collection`}
         fill
         priority
-        sizes="(max-width: 1024px) 50vw, 29vw"
-        className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+        sizes="(max-width: 1024px) 50vw, 30vw"
+        className="object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.02]"
       />
 
-      <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pt-8 sm:px-4 sm:pb-4">
-        <p className="text-[11px] font-normal uppercase tracking-[0.28em] text-white sm:text-[12px]">
+      <div
+        className="absolute inset-0 bg-black/0 transition-colors duration-[800ms] ease-out group-hover:bg-black/10"
+        aria-hidden="true"
+      />
+
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-4">
+        <p className="text-[11px] font-normal uppercase tracking-[0.3em] text-white xl:text-[12px]">
           {tile.title}
-        </p>
-        <p className="mt-1.5 text-[10px] uppercase tracking-[0.2em] text-white/85 transition-transform duration-500 group-hover:translate-x-0.5 sm:text-[11px]">
-          Explore →
         </p>
       </div>
     </Link>
