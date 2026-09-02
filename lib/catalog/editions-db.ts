@@ -2,6 +2,7 @@ import "server-only";
 
 import { createCatalogClient } from "@/lib/supabase/catalog";
 import { isSupabasePublicConfigured } from "@/lib/supabase/env";
+import { filterPublicCatalogEditions } from "@/lib/catalog/public-catalog-visibility";
 import type { CatalogProductRow } from "@/types/database";
 import type { Edition } from "@/types/catalog";
 
@@ -27,7 +28,9 @@ export async function getPublicEditionBySlug(slug: string): Promise<Edition | nu
     return null;
   }
 
-  return data as CatalogProductRow;
+  const edition = data as CatalogProductRow;
+
+  return filterPublicCatalogEditions([edition])[0] ?? null;
 }
 
 export async function listPublicEditionsByVolumeId(
@@ -49,7 +52,7 @@ export async function listPublicEditionsByVolumeId(
     return [];
   }
 
-  return data as CatalogProductRow[];
+  return filterPublicCatalogEditions(data as CatalogProductRow[]);
 }
 
 export async function listPublicEditionsByVolumeSlugs(input: {
