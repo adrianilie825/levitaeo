@@ -44,6 +44,24 @@ export const COLLECTION_PRESENTATION: Record<
     featured: true,
     order: 4,
   },
+  architecture: {
+    shortDescription:
+      "Built form and light studied with editorial restraint.",
+    image: "/images/collections/architecture-cover.png",
+    href: "/collections/architecture",
+    status: "coming-soon",
+    featured: true,
+    order: 5,
+  },
+  botanical: {
+    shortDescription:
+      "Quiet studies of flora, texture, and organic silhouette.",
+    image: "/images/collections/botanical-cover.png",
+    href: "/collections/botanical",
+    status: "coming-soon",
+    featured: true,
+    order: 6,
+  },
 };
 
 export function mapCollectionRowToCollection(
