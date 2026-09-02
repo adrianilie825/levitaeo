@@ -57,6 +57,32 @@ const collectionsData: Collection[] = [
     featured: true,
     order: 4,
   },
+  {
+    slug: "architecture",
+    title: "Architecture",
+    description:
+      "Built form, light, and material studied with editorial restraint.",
+    shortDescription:
+      "Built form and light studied with editorial restraint.",
+    image: "/images/collections/architecture-cover.png",
+    href: "/collections/architecture",
+    status: "coming-soon",
+    featured: true,
+    order: 5,
+  },
+  {
+    slug: "botanical",
+    title: "Botanical",
+    description:
+      "Quiet studies of flora, texture, and organic silhouette.",
+    shortDescription:
+      "Quiet studies of flora, texture, and organic silhouette.",
+    image: "/images/collections/botanical-cover.png",
+    href: "/collections/botanical",
+    status: "coming-soon",
+    featured: true,
+    order: 6,
+  },
 ];
 
 function sortByOrder(items: Collection[]): Collection[] {
