@@ -19,6 +19,7 @@ import {
   getProductPath,
   getProductsByCollection,
 } from "@/lib/products-db";
+import { isPublicCatalogEdition } from "@/lib/catalog/public-catalog-visibility";
 import type { Collection } from "@/types/collection";
 import type { Product } from "@/types/product";
 
@@ -169,10 +170,7 @@ export async function getHomepageLatestVolume(): Promise<PublicVolumeSummary | n
 }
 
 function isHomepageEdition(product: Product): boolean {
-  return (
-    product.status === "available" &&
-    !product.slug.toLowerCase().includes("test")
-  );
+  return product.status === "available" && isPublicCatalogEdition(product);
 }
 
 function toHomepageEdition(product: Product): HomepageEdition {

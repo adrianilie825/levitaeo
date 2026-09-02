@@ -11,9 +11,10 @@ import {
   productCatalog,
 } from "@/lib/product-catalog";
 import { COLLECTION_PRESENTATION } from "@/lib/catalog/collection-presentation";
+import { isPublicCatalogEdition } from "@/lib/catalog/public-catalog-visibility";
+import { getEditionPathFromHierarchy } from "@/lib/catalog/paths";
 import type { Collection } from "@/types/collection";
 import type { Product, ProductStatus } from "@/types/product";
-import { getEditionPathFromHierarchy } from "@/lib/catalog/paths";
 
 export const CATALOG_REVALIDATE_SECONDS = 300;
 export const CATALOG_PRODUCTS_TAG = "catalog-products";
@@ -191,7 +192,9 @@ function mapFallbackProduct(
 }
 
 function getFallbackProducts(): Product[] {
-  return productCatalog.map((product) => mapFallbackProduct(product));
+  return productCatalog
+    .map((product) => mapFallbackProduct(product))
+    .filter((product) => isPublicCatalogEdition(product));
 }
 
 function getFallbackCollections(): Collection[] {
@@ -213,7 +216,9 @@ async function fetchProductBySlugFromDb(
 
   if (!isSupabasePublicConfigured()) {
     return getFallbackProducts().find(
-      (product) => normalizeProductSlug(product.slug) === normalizedSlug,
+      (product) =>
+        normalizeProductSlug(product.slug) === normalizedSlug &&
+        isPublicCatalogEdition(product),
     );
   }
 
@@ -236,7 +241,9 @@ async function fetchProductBySlugFromDb(
     }
 
     return getFallbackProducts().find(
-      (product) => normalizeProductSlug(product.slug) === normalizedSlug,
+      (product) =>
+        normalizeProductSlug(product.slug) === normalizedSlug &&
+        isPublicCatalogEdition(product),
     );
   }
 
@@ -248,8 +255,14 @@ async function fetchProductBySlugFromDb(
     }
 
     return getFallbackProducts().find(
-      (product) => normalizeProductSlug(product.slug) === normalizedSlug,
+      (product) =>
+        normalizeProductSlug(product.slug) === normalizedSlug &&
+        isPublicCatalogEdition(product),
     );
+  }
+
+  if (!isPublicCatalogEdition({ slug: data.slug, title: data.title })) {
+    return undefined;
   }
 
   const { data: collectionData, error: collectionError } = await supabase
@@ -352,7 +365,7 @@ async function fetchProductsFromDb(): Promise<Product[]> {
       collections: collectionsById.get(row.collection_id) ?? null,
       volumes: volumesById.get(row.volume_id) ?? null,
     }),
-  );
+  ).filter((product) => isPublicCatalogEdition(product));
 }
 
 async function fetchCollectionsFromDb(): Promise<Collection[]> {
