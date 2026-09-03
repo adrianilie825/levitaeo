@@ -107,7 +107,7 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-[#ECE8E2] bg-[#FAFAF8]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[#FAFAF8]/75">
+      <header className="sticky top-0 z-50 mb-7 border-b border-[#ECE8E2] bg-[#FAFAF8]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[#FAFAF8]/75 md:mb-0">
         <div className="mx-auto flex min-h-[72px] max-w-7xl items-center gap-4 px-6 py-3 lg:gap-8 lg:px-10">
           <Link
             href="/"
