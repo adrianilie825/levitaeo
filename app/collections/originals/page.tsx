@@ -17,7 +17,7 @@ export const revalidate = 300;
 const ORIGINALS_SLUG = "originals";
 
 const originalsDescription =
-  "Limited digital editions created as individual works rather than recurring series.";
+  "Limited editions created as individual works rather than recurring series.";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Originals",

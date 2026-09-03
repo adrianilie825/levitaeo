@@ -4,8 +4,8 @@ import { COLLECTIONS_PAGE_CONTAINER } from "@/lib/catalog/collections-page-data"
 import { formatEditionLabel, getProductPath } from "@/lib/products-db";
 import type { Product } from "@/types/product";
 
-const sectionSpacing = "py-10 md:py-14 lg:py-16";
-const statementSpacing = "py-12 md:py-14 lg:py-16";
+const statementSpacing = "py-9 md:py-10 lg:py-11";
+const gallerySectionSpacing = "pt-8 pb-10 md:pt-10 md:pb-14 lg:pt-11 lg:pb-16";
 
 type OriginalsCollectionPageProps = {
   heroImage: string;
@@ -109,8 +109,8 @@ function OriginalsOpening({ heroImage }: { heroImage: string }) {
             </h1>
 
             <p className="mt-6 max-w-md text-[15px] leading-7 text-neutral-600 sm:text-base sm:leading-8 lg:mt-7">
-              Limited digital editions created as individual works rather than
-              recurring series.
+              Limited editions created as individual works rather than recurring
+              series.
             </p>
           </div>
 
@@ -154,7 +154,7 @@ function OriginalsStatement() {
 function OriginalsGallery({ editions }: { editions: Product[] }) {
   return (
     <section
-      className={`border-t border-[#ECE8E2] ${sectionSpacing}`}
+      className={`border-t border-[#ECE8E2] ${gallerySectionSpacing}`}
       aria-labelledby="originals-gallery"
     >
       <div className={COLLECTIONS_PAGE_CONTAINER}>
@@ -172,7 +172,7 @@ function OriginalsGallery({ editions }: { editions: Product[] }) {
         </div>
 
         {editions.length > 0 ? (
-          <div className="mt-12 flex flex-col gap-14 sm:gap-16 lg:mt-16 lg:gap-20">
+          <div className="mt-9 flex flex-col gap-14 sm:mt-10 sm:gap-16 lg:mt-11 lg:gap-20">
             {editions.map((product, index) => (
               <OriginalsEditionEntry
                 key={product.slug}
