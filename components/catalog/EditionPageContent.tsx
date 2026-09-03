@@ -1,6 +1,5 @@
-import ArtworkDescription from "@/components/artwork/ArtworkDescription";
+import ArtworkDetailPanel from "@/components/artwork/ArtworkDetailPanel";
 import ArtworkGallery from "@/components/artwork/ArtworkGallery";
-import ArtworkPurchasePanel from "@/components/artwork/ArtworkPurchasePanel";
 import ArtworkStickyBar from "@/components/artwork/ArtworkStickyBar";
 import RelatedArtworks from "@/components/artwork/RelatedArtworks";
 import Footer from "@/components/Footer";
@@ -51,23 +50,20 @@ export default async function EditionPageContent({
       <NavbarWithAuth />
 
       <section className="border-b border-[#ECE8E2]">
-        <div className="mx-auto max-w-7xl px-6 pt-10 pb-12 md:pt-14 md:pb-16 lg:px-10">
-          <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] lg:gap-x-16 xl:gap-x-20">
+        <div className="mx-auto max-w-7xl px-6 pt-8 pb-12 md:pt-10 md:pb-14 lg:px-10">
+          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:gap-x-14 xl:gap-x-16">
             <ArtworkGallery product={product} />
 
-            <div className="lg:sticky lg:top-24 lg:self-start">
-              <ArtworkPurchasePanel
-                product={product}
-                canPurchase={canPurchase}
-                isAuthenticated={Boolean(authenticatedUser)}
-                isOwned={isOwned}
-              />
-            </div>
+            <ArtworkDetailPanel
+              product={product}
+              productPath={getProductPath(product)}
+              canPurchase={canPurchase}
+              isAuthenticated={Boolean(authenticatedUser)}
+              isOwned={isOwned}
+            />
           </div>
         </div>
       </section>
-
-      <ArtworkDescription description={product.description} />
 
       <RelatedArtworks
         products={relatedProducts}

@@ -3,7 +3,7 @@ import type { Product } from "@/types/product";
 export const PRODUCT_FALLBACK_IMAGE = "/images/collections/originals.png";
 
 const SHARED_DESCRIPTION =
-  "A limited digital edition exploring contrast, balance, atmosphere, and visual restraint.";
+  "A study in contrast, balance, atmosphere, and visual restraint.";
 
 const SHARED_METADATA = {
   fileType: "High-resolution PNG",
