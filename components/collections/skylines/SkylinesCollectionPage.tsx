@@ -101,19 +101,19 @@ function SkylinesOpening() {
             aria-hidden
           />
 
-          <div className="absolute inset-0 flex flex-col justify-center px-6 py-10 sm:px-8 md:px-10 lg:px-12">
+          <div className="absolute inset-0 flex flex-col justify-center px-5 py-11 sm:px-8 md:px-10 md:py-10 lg:px-12">
             <div className="max-w-lg lg:-translate-y-[60px]">
-              <p className="text-[11px] font-normal uppercase tracking-[0.44em] text-white/90">
+              <p className="text-[13px] font-normal uppercase tracking-[0.4em] text-white/90 sm:text-[11px] sm:tracking-[0.44em]">
                 Skylines
               </p>
 
-              <h1 className="mt-4 text-[2rem] font-light leading-[1.08] tracking-[-0.02em] text-white sm:mt-5 sm:text-[2.35rem] lg:text-[2.65rem] lg:leading-[1.06]">
+              <h1 className="mt-5 text-[2.85rem] font-light leading-[1.04] tracking-[-0.02em] text-white sm:mt-5 sm:text-[2.35rem] sm:leading-[1.08] lg:text-[2.65rem] lg:leading-[1.06]">
                 Cities reduced
                 <br />
                 to their essential line.
               </h1>
 
-              <p className="mt-4 max-w-md text-[14px] leading-7 text-white/85 sm:mt-5 sm:text-[15px] sm:leading-8">
+              <p className="mt-5 max-w-md text-[17px] leading-[1.65] text-white/88 sm:mt-5 sm:text-[15px] sm:leading-8">
                 Graphic studies of urban identity, silhouette, rhythm and scale.
               </p>
             </div>
