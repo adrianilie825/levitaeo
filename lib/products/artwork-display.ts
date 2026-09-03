@@ -61,12 +61,53 @@ export function getArtworkMetadataItems(product: Product): ArtworkMetadataItem[]
   return items;
 }
 
+/** Digital specifications for the detail panel — excludes edition when shown in the identity block. */
+export function getDigitalSpecificationItems(
+  product: Product,
+): ArtworkMetadataItem[] {
+  const items: ArtworkMetadataItem[] = [];
+
+  if (product.resolution?.trim()) {
+    items.push({ label: "Resolution", value: product.resolution.trim() });
+  }
+
+  if (product.fileType?.trim()) {
+    items.push({ label: "File type", value: product.fileType.trim() });
+  }
+
+  if (product.collection?.trim()) {
+    items.push({ label: "Collection", value: product.collection.trim() });
+  }
+
+  return items;
+}
+
+export function formatEditionLabel(edition: string): string {
+  return `Edition ${edition}`;
+}
+
+const LEGACY_ARTWORK_DESCRIPTION =
+  "A limited digital edition exploring contrast, balance, atmosphere, and visual restraint.";
+
+const NEUTRAL_ARTWORK_DESCRIPTION =
+  "A study in contrast, balance, atmosphere, and visual restraint.";
+
+function normalizeArtworkDescription(description: string): string {
+  const trimmed = description.trim();
+
+  if (trimmed === LEGACY_ARTWORK_DESCRIPTION) {
+    return NEUTRAL_ARTWORK_DESCRIPTION;
+  }
+
+  return description;
+}
+
 export function getArtworkDescriptionParagraphs(description?: string): string[] {
   if (!description?.trim()) {
     return [];
   }
 
-  return description
+  return normalizeArtworkDescription(description)
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph.length > 0);
