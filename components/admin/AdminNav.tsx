@@ -8,6 +8,7 @@ const links = [
   { href: "/admin/products", label: "Editions" },
   { href: "/admin/products/new", label: "New Artwork" },
   { href: "/admin/collections", label: "Collections" },
+  { href: "/admin/journal", label: "Journal" },
 ];
 
 type AdminNavProps = Record<string, never>;

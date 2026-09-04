@@ -2,7 +2,10 @@
 
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { siteConfig } from "@/lib/site";
+import {
+  buildAuthCallbackUrl,
+  setAuthNextCookie,
+} from "@/lib/auth/next-path";
 
 type MagicLinkFormProps = {
   nextPath: string;
@@ -10,9 +13,40 @@ type MagicLinkFormProps = {
 
 type FormState = "idle" | "submitting" | "success" | "error";
 
+type AuthErrorDetails = {
+  message: string;
+  status?: number;
+  code?: string;
+};
+
+const isDevelopment = process.env.NODE_ENV === "development";
+
+function toAuthErrorDetails(error: unknown): AuthErrorDetails {
+  if (error && typeof error === "object" && "message" in error) {
+    const authError = error as {
+      message: string;
+      status?: number;
+      code?: string;
+    };
+
+    return {
+      message: authError.message,
+      status: authError.status,
+      code: authError.code,
+    };
+  }
+
+  if (error instanceof Error) {
+    return { message: error.message };
+  }
+
+  return { message: "Unknown authentication error." };
+}
+
 export default function MagicLinkForm({ nextPath }: MagicLinkFormProps) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>("idle");
+  const [authError, setAuthError] = useState<AuthErrorDetails | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,10 +58,20 @@ export default function MagicLinkForm({ nextPath }: MagicLinkFormProps) {
     }
 
     setState("submitting");
+    setAuthError(null);
 
     try {
       const supabase = createClient();
-      const redirectTo = `${siteConfig.url}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+      setAuthNextCookie(nextPath);
+      const redirectTo = buildAuthCallbackUrl(window.location.origin);
+
+      if (isDevelopment) {
+        console.log("[MagicLinkForm] signInWithOtp request:", {
+          origin: window.location.origin,
+          nextPath,
+          emailRedirectTo: redirectTo,
+        });
+      }
 
       const { error } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
@@ -38,12 +82,37 @@ export default function MagicLinkForm({ nextPath }: MagicLinkFormProps) {
       });
 
       if (error) {
+        const details = toAuthErrorDetails(error);
+
+        if (isDevelopment) {
+          console.error("[MagicLinkForm] signInWithOtp failed:", {
+            message: details.message,
+            status: details.status,
+            code: details.code,
+            redirectTo,
+            nextPath,
+          });
+        }
+
+        setAuthError(details);
         setState("error");
         return;
       }
 
       setState("success");
-    } catch {
+    } catch (error) {
+      const details = toAuthErrorDetails(error);
+
+      if (isDevelopment) {
+        console.error("[MagicLinkForm] signInWithOtp threw:", {
+          message: details.message,
+          status: details.status,
+          code: details.code,
+          nextPath,
+        });
+      }
+
+      setAuthError(details);
       setState("error");
     }
   }
@@ -84,9 +153,18 @@ export default function MagicLinkForm({ nextPath }: MagicLinkFormProps) {
       />
 
       {state === "error" ? (
-        <p className="mt-4 text-[13px] leading-6 text-neutral-600" role="alert">
-          We could not send the sign-in link. Please try again.
-        </p>
+        <div className="mt-4 space-y-2" role="alert">
+          <p className="text-[13px] leading-6 text-neutral-600">
+            We could not send the sign-in link. Please try again.
+          </p>
+          {isDevelopment && authError ? (
+            <p className="rounded border border-[#ECE8E2] bg-[#F7F5F1] px-3 py-2 font-mono text-[12px] leading-6 text-neutral-700">
+              {authError.message}
+              {authError.code ? ` (code: ${authError.code})` : ""}
+              {authError.status ? ` (status: ${authError.status})` : ""}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <button

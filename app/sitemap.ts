@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getPublishedJournalPosts } from "@/lib/journal/journal-db";
 import { getProductsByCollection } from "@/lib/products-db";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -6,7 +7,10 @@ export const revalidate = 300;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const buildDate = new Date();
-  const originalsProducts = await getProductsByCollection("originals");
+  const [originalsProducts, journalPosts] = await Promise.all([
+    getProductsByCollection("originals"),
+    getPublishedJournalPosts(),
+  ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -20,6 +24,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: buildDate,
       changeFrequency: "weekly",
       priority: 0.9,
+    },
+    {
+      url: absoluteUrl("/journal"),
+      lastModified: buildDate,
+      changeFrequency: "weekly",
+      priority: 0.8,
     },
     {
       url: absoluteUrl("/collections/originals"),
@@ -38,5 +48,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
-  return [...staticRoutes, ...productRoutes];
+  const journalRoutes: MetadataRoute.Sitemap = journalPosts.map((post) => ({
+    url: absoluteUrl(`/journal/${post.slug}`),
+    lastModified: post.publishedAt ? new Date(post.publishedAt) : buildDate,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...productRoutes, ...journalRoutes];
 }

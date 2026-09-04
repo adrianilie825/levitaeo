@@ -32,7 +32,7 @@ const footerSections: FooterSection[] = [
   },
   {
     title: "Journal",
-    items: [{ label: "The Levitaeo Journal", href: "/#journal" }],
+    items: [{ label: "The Levitaeo Journal", href: "/journal" }],
   },
   {
     title: "Support",
