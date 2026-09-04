@@ -3,10 +3,7 @@ import { notFound } from "next/navigation";
 import JournalArticleHeader from "@/components/journal/JournalArticleHeader";
 import BrandPageShell from "@/components/brand/BrandPageShell";
 import JsonLd from "@/components/JsonLd";
-import {
-  getPublishedJournalPostBySlug,
-  getPublishedJournalSlugs,
-} from "@/lib/journal/journal-db";
+import { getPublishedJournalPostBySlug } from "@/lib/journal/journal-db";
 import {
   blogPostingJsonLd,
   createJournalArticleMetadata,
@@ -21,12 +18,6 @@ type JournalArticlePageProps = {
     slug: string;
   }>;
 };
-
-export async function generateStaticParams() {
-  const slugs = await getPublishedJournalSlugs();
-
-  return slugs.map((slug) => ({ slug }));
-}
 
 export async function generateMetadata({
   params,
