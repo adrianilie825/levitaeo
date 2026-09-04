@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import JournalArticleBody from "@/components/journal/JournalArticleBody";
-import { formatJournalDate, getJournalCoverAlt } from "@/lib/journal/format";
+import { formatJournalDate, resolveJournalCoverAlt } from "@/lib/journal/format";
 import type { JournalPost } from "@/types/journal";
 
 type JournalArticleHeaderProps = {
@@ -57,7 +57,10 @@ export default function JournalArticleHeader({ post }: JournalArticleHeaderProps
           <div className="relative mx-auto aspect-[16/9] max-w-7xl overflow-hidden">
             <Image
               src={post.coverImageUrl}
-              alt={getJournalCoverAlt(post.title)}
+              alt={resolveJournalCoverAlt({
+                title: post.title,
+                coverImageAlt: post.coverImageAlt,
+              })}
               fill
               priority
               sizes="100vw"

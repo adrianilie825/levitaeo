@@ -2,8 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   formatJournalDate,
-  getJournalCoverAlt,
   getJournalPostPath,
+  resolveJournalCoverAlt,
 } from "@/lib/journal/format";
 import type { JournalPostSummary } from "@/types/journal";
 
@@ -30,7 +30,10 @@ export default function JournalPostCard({
           <div className="relative aspect-[16/10] overflow-hidden bg-[#F0EDE8]">
             <Image
               src={post.coverImageUrl}
-              alt={getJournalCoverAlt(post.title)}
+              alt={resolveJournalCoverAlt({
+                title: post.title,
+                coverImageAlt: post.coverImageAlt,
+              })}
               fill
               priority={priority}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

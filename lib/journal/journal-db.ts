@@ -15,6 +15,7 @@ type DbJournalPostRow = {
   excerpt: string;
   body: string;
   cover_image_url: string;
+  cover_image_alt: string;
   author: string;
   published_at: string | null;
   category: string;
@@ -27,7 +28,7 @@ type DbJournalPostRow = {
 };
 
 const JOURNAL_POST_COLUMNS =
-  "id, title, slug, excerpt, body, cover_image_url, author, published_at, category, status, seo_title, seo_description, og_image_url, created_at, updated_at";
+  "id, title, slug, excerpt, body, cover_image_url, cover_image_alt, author, published_at, category, status, seo_title, seo_description, og_image_url, created_at, updated_at";
 
 function normalizeJournalSlug(slug: string): string {
   return slug.trim().toLowerCase();
@@ -45,6 +46,7 @@ function mapDbJournalPost(row: DbJournalPostRow): JournalPost {
     excerpt: row.excerpt,
     body: row.body,
     coverImageUrl: row.cover_image_url,
+    coverImageAlt: row.cover_image_alt ?? "",
     author: row.author,
     publishedAt: row.published_at,
     category: row.category,
@@ -64,6 +66,7 @@ function toJournalPostSummary(post: JournalPost): JournalPostSummary {
     slug: post.slug,
     excerpt: post.excerpt,
     coverImageUrl: post.coverImageUrl,
+    coverImageAlt: post.coverImageAlt,
     author: post.author,
     publishedAt: post.publishedAt,
     category: post.category,

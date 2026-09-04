@@ -14,6 +14,7 @@ export type JournalPostWriteInput = {
   excerpt: string;
   body: string;
   cover_image_url: string;
+  cover_image_alt: string;
   author: string;
   category: string;
   seo_title: string;
@@ -103,6 +104,46 @@ export async function updateAdminJournalPost(
   const { data, error } = await supabase
     .from("journal_posts")
     .update(input)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as JournalPostRow;
+}
+
+export async function updateAdminJournalCoverUrl(
+  id: string,
+  coverImageUrl: string,
+): Promise<JournalPostRow> {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("journal_posts")
+    .update({ cover_image_url: coverImageUrl })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as JournalPostRow;
+}
+
+export async function clearAdminJournalCover(
+  id: string,
+): Promise<JournalPostRow> {
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from("journal_posts")
+    .update({
+      cover_image_url: "",
+      cover_image_alt: "",
+    })
     .eq("id", id)
     .select("*")
     .single();

@@ -34,6 +34,7 @@ export type JournalPostRow = {
   excerpt: string;
   body: string;
   cover_image_url: string;
+  cover_image_alt: string;
   author: string;
   published_at: string | null;
   category: string;
