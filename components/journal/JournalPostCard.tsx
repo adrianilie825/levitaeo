@@ -9,25 +9,22 @@ import type { JournalPostSummary } from "@/types/journal";
 
 type JournalPostCardProps = {
   post: JournalPostSummary;
-  priority?: boolean;
 };
 
 function hasCoverImage(url: string): boolean {
   return url.trim().length > 0;
 }
 
-export default function JournalPostCard({
-  post,
-  priority = false,
-}: JournalPostCardProps) {
+export default function JournalPostCard({ post }: JournalPostCardProps) {
   const formattedDate = formatJournalDate(post.publishedAt);
   const href = getJournalPostPath(post.slug);
+  const showCover = hasCoverImage(post.coverImageUrl);
 
   return (
     <article className="group">
       <Link href={href} className="block">
-        {hasCoverImage(post.coverImageUrl) ? (
-          <div className="relative aspect-[16/10] overflow-hidden bg-[#F0EDE8]">
+        {showCover ? (
+          <div className="relative aspect-[16/9] overflow-hidden bg-[#F0EDE8]">
             <Image
               src={post.coverImageUrl}
               alt={resolveJournalCoverAlt({
@@ -35,14 +32,13 @@ export default function JournalPostCard({
                 coverImageAlt: post.coverImageAlt,
               })}
               fill
-              priority={priority}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
+              className="object-cover"
             />
           </div>
         ) : null}
 
-        <div className={hasCoverImage(post.coverImageUrl) ? "mt-6" : undefined}>
+        <div className={showCover ? "mt-6" : undefined}>
           {post.category ? (
             <p className="text-[11px] font-normal uppercase tracking-[0.36em] text-neutral-500">
               {post.category}
@@ -50,7 +46,7 @@ export default function JournalPostCard({
           ) : null}
 
           <h2
-            className={`text-[1.5rem] font-light leading-[1.16] tracking-[-0.02em] text-[#111111] transition-colors group-hover:text-neutral-700 sm:text-[1.65rem] ${
+            className={`text-[1.35rem] font-light leading-[1.18] tracking-[-0.02em] text-[#111111] transition-colors group-hover:text-neutral-700 sm:text-[1.5rem] ${
               post.category ? "mt-3" : ""
             }`}
           >
@@ -58,7 +54,7 @@ export default function JournalPostCard({
           </h2>
 
           {post.excerpt ? (
-            <p className="mt-4 max-w-xl text-[15px] leading-7 text-neutral-600 sm:text-base sm:leading-8">
+            <p className="mt-4 max-w-xl text-[15px] leading-7 text-neutral-600">
               {post.excerpt}
             </p>
           ) : null}
@@ -68,6 +64,10 @@ export default function JournalPostCard({
               {[post.author, formattedDate].filter(Boolean).join(" · ")}
             </p>
           )}
+
+          <p className="mt-6 text-[11px] uppercase tracking-[0.24em] text-[#111111] transition-colors group-hover:text-neutral-600">
+            Read article →
+          </p>
         </div>
       </Link>
     </article>

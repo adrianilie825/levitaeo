@@ -1,4 +1,5 @@
 import JournalEmptyState from "@/components/journal/JournalEmptyState";
+import JournalFeaturedPost from "@/components/journal/JournalFeaturedPost";
 import JournalPostCard from "@/components/journal/JournalPostCard";
 import BrandPageShell from "@/components/brand/BrandPageShell";
 import JsonLd from "@/components/JsonLd";
@@ -50,11 +51,17 @@ export default async function JournalPage() {
 
       {posts.length > 0 ? (
         <section className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
-          <div className="grid gap-14 md:grid-cols-2 md:gap-x-10 md:gap-y-16 lg:gap-x-14 lg:gap-y-20">
-            {posts.map((post, index) => (
-              <JournalPostCard key={post.id} post={post} priority={index === 0} />
-            ))}
-          </div>
+          <JournalFeaturedPost post={posts[0]} />
+
+          {posts.length > 1 ? (
+            <div className="mt-16 border-t border-[#ECE8E2] pt-16 md:mt-20 md:pt-20 lg:mt-24 lg:pt-24">
+              <div className="grid gap-14 md:grid-cols-2 md:gap-x-10 md:gap-y-16 lg:gap-x-14 lg:gap-y-20">
+                {posts.slice(1).map((post) => (
+                  <JournalPostCard key={post.id} post={post} />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : (
         <JournalEmptyState
