@@ -29,3 +29,16 @@ export function getJournalCoverAlt(title: string): string {
 
   return `${trimmed} — Levitaeo Journal`;
 }
+
+export function resolveJournalCoverAlt(input: {
+  title: string;
+  coverImageAlt?: string | null;
+}): string {
+  const storedAlt = input.coverImageAlt?.trim();
+
+  if (storedAlt) {
+    return storedAlt;
+  }
+
+  return getJournalCoverAlt(input.title);
+}

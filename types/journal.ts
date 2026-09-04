@@ -7,6 +7,7 @@ export type JournalPost = {
   excerpt: string;
   body: string;
   coverImageUrl: string;
+  coverImageAlt: string;
   author: string;
   publishedAt: string | null;
   category: string;
@@ -25,6 +26,7 @@ export type JournalPostSummary = Pick<
   | "slug"
   | "excerpt"
   | "coverImageUrl"
+  | "coverImageAlt"
   | "author"
   | "publishedAt"
   | "category"

@@ -84,6 +84,7 @@ function readJournalPostInput(
   const excerpt = String(formData.get("excerpt") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
   const coverImageUrl = String(formData.get("cover_image_url") ?? "").trim();
+  const coverImageAlt = String(formData.get("cover_image_alt") ?? "").trim();
   const author = String(formData.get("author") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const seoTitle = String(formData.get("seo_title") ?? "").trim();
@@ -114,8 +115,12 @@ function readJournalPostInput(
   }
 
   if (!isValidOptionalUrl(coverImageUrl)) {
-    fieldErrors.cover_image_url =
-      "Enter a valid cover image URL or site path.";
+    fieldErrors.cover_image_url = "The cover image could not be saved.";
+  }
+
+  if (coverImageAlt.length > 500) {
+    fieldErrors.cover_image_alt =
+      "Cover alt text must be 500 characters or fewer.";
   }
 
   if (!isValidOptionalUrl(ogImageUrl)) {
@@ -147,6 +152,7 @@ function readJournalPostInput(
       excerpt,
       body,
       cover_image_url: coverImageUrl,
+      cover_image_alt: coverImageAlt,
       author,
       category,
       seo_title: seoTitle,

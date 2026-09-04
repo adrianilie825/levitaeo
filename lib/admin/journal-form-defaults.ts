@@ -6,6 +6,7 @@ export type JournalPostFormValues = {
   excerpt: string;
   body: string;
   cover_image_url: string;
+  cover_image_alt: string;
   author: string;
   category: string;
   seo_title: string;
@@ -22,6 +23,7 @@ export function emptyJournalPostFormValues(): JournalPostFormValues {
     excerpt: "",
     body: "",
     cover_image_url: "",
+    cover_image_alt: "",
     author: "Levitaeo Studio",
     category: "",
     seo_title: "",
@@ -41,6 +43,7 @@ export function journalPostRowToFormValues(
     excerpt: post.excerpt,
     body: post.body,
     cover_image_url: post.cover_image_url,
+    cover_image_alt: post.cover_image_alt ?? "",
     author: post.author,
     category: post.category,
     seo_title: post.seo_title,
