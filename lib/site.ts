@@ -35,6 +35,7 @@ export const siteConfig = {
   themeColor: "#FAFAF8",
   creator: "Levitaeo Studio",
   defaultOgImage: "/images/collections/originals.png",
+  publisherLogo: "/favicon.ico",
   social: {
     instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL?.trim() ?? "",
     pinterest: process.env.NEXT_PUBLIC_PINTEREST_URL?.trim() ?? "",

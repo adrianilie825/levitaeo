@@ -37,6 +37,9 @@ type PageMetadataOptions = {
   image?: string;
   openGraphType?: "website" | "article";
   robots?: Metadata["robots"];
+  publishedTime?: string;
+  modifiedTime?: string;
+  authors?: string[];
 };
 
 export function createPageMetadata({
@@ -46,27 +49,42 @@ export function createPageMetadata({
   image,
   openGraphType = "website",
   robots,
+  publishedTime,
+  modifiedTime,
+  authors,
 }: PageMetadataOptions): Metadata {
   const canonical = createCanonical(path);
   const ogImage = resolveOgImage(image);
   const fullTitle = `${title} | ${siteConfig.name}`;
 
+  const openGraph = {
+    title: fullTitle,
+    description,
+    url: canonical,
+    siteName: siteConfig.name,
+    locale: siteConfig.locale,
+    type: openGraphType,
+    images: [{ url: ogImage }],
+    ...(openGraphType === "article" && publishedTime
+      ? { publishedTime }
+      : {}),
+    ...(openGraphType === "article" && modifiedTime ? { modifiedTime } : {}),
+    ...(openGraphType === "article" && authors && authors.length > 0
+      ? { authors }
+      : {}),
+  } satisfies NonNullable<Metadata["openGraph"]>;
+
   return {
     title,
     description,
     robots,
+    ...(authors && authors.length > 0
+      ? { authors: authors.map((name) => ({ name })) }
+      : {}),
     alternates: {
       canonical,
     },
-    openGraph: {
-      title: fullTitle,
-      description,
-      url: canonical,
-      siteName: siteConfig.name,
-      locale: siteConfig.locale,
-      type: openGraphType,
-      images: [{ url: ogImage }],
-    },
+    openGraph,
     twitter: {
       card: "summary_large_image",
       title: fullTitle,
@@ -74,6 +92,29 @@ export function createPageMetadata({
       images: [ogImage],
     },
   };
+}
+
+export function createJournalArticleMetadata(input: {
+  title: string;
+  description: string;
+  path: string;
+  image?: string;
+  publishedAt: string;
+  updatedAt?: string;
+  author?: string;
+}): Metadata {
+  const authorName = input.author?.trim() || siteConfig.creator;
+
+  return createPageMetadata({
+    title: input.title,
+    description: input.description,
+    path: input.path,
+    image: input.image,
+    openGraphType: "article",
+    publishedTime: input.publishedAt,
+    modifiedTime: input.updatedAt,
+    authors: [authorName],
+  });
 }
 
 function getSocialProfiles(): string[] {
@@ -263,4 +304,103 @@ export function homePageJsonLd(input: {
     breadcrumbListJsonLd([{ name: siteConfig.name, path: "/" }]),
     ...input.editions.map((edition) => editionProductJsonLd(edition)),
   ];
+}
+
+type JournalPostJsonLdInput = {
+  title: string;
+  description: string;
+  slug: string;
+  author: string;
+  publishedAt: string;
+  updatedAt?: string;
+  image?: string;
+  category?: string;
+};
+
+export function journalIndexJsonLd(input: {
+  posts: Array<{ title: string; slug: string }>;
+}) {
+  const description =
+    "Notes on digital art, visual culture, interiors and the evolving ways we live with images.";
+
+  return [
+    collectionPageJsonLd({
+      name: "Levitaeo Journal",
+      description,
+      path: "/journal",
+    }),
+    breadcrumbListJsonLd([
+      { name: siteConfig.name, path: "/" },
+      { name: "Journal", path: "/journal" },
+    ]),
+    ...(input.posts.length > 0
+      ? [
+          itemListJsonLd({
+            name: "Journal Articles",
+            description,
+            items: input.posts.map((post) => ({
+              name: post.title,
+              url: `/journal/${post.slug}`,
+            })),
+          }),
+        ]
+      : []),
+  ];
+}
+
+function getPublisherOrganizationJsonLd() {
+  const organization: Record<string, unknown> = {
+    "@type": "Organization",
+    name: siteConfig.name,
+    url: siteConfig.url,
+  };
+
+  if (siteConfig.publisherLogo.trim()) {
+    organization.logo = {
+      "@type": "ImageObject",
+      url: resolveOgImage(siteConfig.publisherLogo),
+    };
+  }
+
+  return organization;
+}
+
+export function blogPostingJsonLd(post: JournalPostJsonLdInput) {
+  const path = `/journal/${post.slug}`;
+  const url = createCanonical(path);
+  const authorName = post.author.trim() || siteConfig.creator;
+
+  const schema: Record<string, unknown> = {
+    "@context": SCHEMA_ORG_CONTEXT,
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.description,
+    url,
+    datePublished: post.publishedAt,
+    author: {
+      "@type": "Person",
+      name: authorName,
+    },
+    publisher: getPublisherOrganizationJsonLd(),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": url,
+    },
+  };
+
+  if (post.image) {
+    schema.image = post.image.startsWith("http")
+      ? post.image
+      : resolveOgImage(post.image);
+  }
+
+  if (post.updatedAt) {
+    schema.dateModified = post.updatedAt;
+  }
+
+  if (post.category?.trim()) {
+    schema.articleSection = post.category.trim();
+  }
+
+  return schema;
 }

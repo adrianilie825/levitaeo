@@ -27,6 +27,24 @@ export type CatalogVolumeRow = {
   created_at: string;
 };
 
+export type JournalPostRow = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  body: string;
+  cover_image_url: string;
+  author: string;
+  published_at: string | null;
+  category: string;
+  status: string;
+  seo_title: string;
+  seo_description: string;
+  og_image_url: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CatalogProductRow = {
   id: string;
   collection_id: string;
@@ -280,6 +298,12 @@ export type Database = {
         Row: DownloadEventRow;
         Insert: DownloadEventInsert;
         Update: Partial<DownloadEventInsert>;
+        Relationships: [];
+      };
+      journal_posts: {
+        Row: JournalPostRow;
+        Insert: Partial<JournalPostRow>;
+        Update: Partial<JournalPostRow>;
         Relationships: [];
       };
     };

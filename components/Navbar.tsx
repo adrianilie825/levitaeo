@@ -28,6 +28,10 @@ function isNavLinkActive(pathname: string, href: string): boolean {
     return pathname === "/faq";
   }
 
+  if (href === "/journal") {
+    return pathname === "/journal" || pathname.startsWith("/journal/");
+  }
+
   return pathname === href;
 }
 
@@ -93,7 +97,7 @@ export default function Navbar({ isAuthenticated = false }: NavbarProps) {
       <PrimaryNavLink href="/collections" pathname={pathname} onNavigate={closeMobileMenu}>
         Collections
       </PrimaryNavLink>
-      <PrimaryNavLink href="/#journal" pathname={pathname} onNavigate={closeMobileMenu}>
+      <PrimaryNavLink href="/journal" pathname={pathname} onNavigate={closeMobileMenu}>
         Journal
       </PrimaryNavLink>
       <PrimaryNavLink href="/faq#membership" pathname={pathname} onNavigate={closeMobileMenu}>
