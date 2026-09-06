@@ -193,7 +193,7 @@ export default function SearchDialog({ open, onClose }: SearchDialogProps) {
 
         <div className="flex items-center gap-3 border-b border-[#ECE8E2] px-4 py-3 sm:px-5">
           <label htmlFor="levitaeo-search-input" className="sr-only">
-            Search editions and collections
+            Search editions, collections, and journal
           </label>
           <input
             ref={inputRef}
@@ -202,7 +202,7 @@ export default function SearchDialog({ open, onClose }: SearchDialogProps) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search editions and collections"
+            placeholder="Search editions, collections, and journal"
             autoComplete="off"
             aria-busy={isSearching}
             className="min-w-0 flex-1 bg-transparent text-[15px] text-[#111111] outline-none placeholder:text-neutral-400"
@@ -253,9 +253,9 @@ export default function SearchDialog({ open, onClose }: SearchDialogProps) {
             </div>
           ) : results.length === 0 ? (
             <div className="py-8 text-center">
-              <p className="text-[15px] text-[#111111]">No editions found.</p>
+              <p className="text-[15px] text-[#111111]">No results found.</p>
               <p className="mt-2 text-[13px] leading-6 text-neutral-500">
-                Try another title, collection, or edition number.
+                Try another title, collection, edition, or journal keyword.
               </p>
             </div>
           ) : (
@@ -283,7 +283,11 @@ export default function SearchDialog({ open, onClose }: SearchDialogProps) {
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="text-[10px] uppercase tracking-[0.16em] text-neutral-400">
-                        {result.type === "collection" ? "Collection" : "Edition"}
+                        {result.type === "collection"
+                          ? "Collection"
+                          : result.type === "journal"
+                            ? "Journal"
+                            : "Edition"}
                       </p>
                       {result.status === "coming-soon" && (
                         <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-neutral-500">

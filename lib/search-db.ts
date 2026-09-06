@@ -1,6 +1,11 @@
 import "server-only";
 
 import {
+  getPublishedJournalPosts,
+  JOURNAL_POSTS_TAG,
+} from "@/lib/journal/journal-db";
+import { getJournalPostPath } from "@/lib/journal/format";
+import {
   CATALOG_REVALIDATE_SECONDS,
   CATALOG_SEARCH_TAG,
   getAllProducts,
@@ -10,7 +15,7 @@ import {
 import { PRODUCT_FALLBACK_IMAGE } from "@/lib/product-catalog";
 import { unstable_cache } from "next/cache";
 
-export type SearchResultType = "product" | "collection";
+export type SearchResultType = "product" | "collection" | "journal";
 
 export type SearchResultStatus = "available" | "coming-soon";
 
@@ -38,10 +43,42 @@ type IndexedItem = SearchResult & {
   rankFields: string[];
 };
 
+const JOURNAL_EXCERPT_SUBTITLE_MAX_LENGTH = 80;
+
+function truncateJournalExcerpt(excerpt: string): string {
+  const trimmed = excerpt.trim();
+
+  if (trimmed.length <= JOURNAL_EXCERPT_SUBTITLE_MAX_LENGTH) {
+    return trimmed;
+  }
+
+  return `${trimmed.slice(0, JOURNAL_EXCERPT_SUBTITLE_MAX_LENGTH).trimEnd()}…`;
+}
+
+function buildJournalSearchSubtitle(category: string, excerpt: string): string {
+  const trimmedCategory = category.trim();
+  const trimmedExcerpt = excerpt.trim();
+
+  if (trimmedCategory && trimmedExcerpt) {
+    return `${trimmedCategory} · ${truncateJournalExcerpt(trimmedExcerpt)}`;
+  }
+
+  if (trimmedCategory) {
+    return trimmedCategory;
+  }
+
+  if (trimmedExcerpt) {
+    return truncateJournalExcerpt(trimmedExcerpt);
+  }
+
+  return "Journal";
+}
+
 async function buildSearchIndex(): Promise<IndexedItem[]> {
-  const [products, collections] = await Promise.all([
+  const [products, collections, journalPosts] = await Promise.all([
     getAllProducts(),
     getCollections(),
+    getPublishedJournalPosts(),
   ]);
 
   return [
@@ -104,6 +141,25 @@ async function buildSearchIndex(): Promise<IndexedItem[]> {
         ],
       };
     }),
+    ...journalPosts.map((post) => ({
+      id: `journal-${post.slug}`,
+      type: "journal" as const,
+      title: post.title,
+      subtitle: buildJournalSearchSubtitle(post.category, post.excerpt),
+      image: post.coverImageUrl.trim() || PRODUCT_FALLBACK_IMAGE,
+      href: getJournalPostPath(post.slug),
+      status: "available" as const,
+      searchableText: [
+        post.title,
+        post.excerpt,
+        post.category,
+        post.author,
+        post.slug,
+      ].join(" "),
+      navigable: true,
+      rankTitle: post.title,
+      rankFields: [post.excerpt, post.category, post.author, post.slug],
+    })),
   ];
 }
 
@@ -112,7 +168,7 @@ const getCachedSearchIndex = unstable_cache(
   ["catalog-search-index"],
   {
     revalidate: CATALOG_REVALIDATE_SECONDS,
-    tags: [CATALOG_SEARCH_TAG],
+    tags: [CATALOG_SEARCH_TAG, JOURNAL_POSTS_TAG],
   },
 );
 
