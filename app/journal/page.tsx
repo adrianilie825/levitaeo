@@ -31,8 +31,8 @@ export default async function JournalPage() {
         })}
       />
 
-      <section className="border-b border-[#ECE8E2]">
-        <div className="mx-auto max-w-7xl px-6 pt-8 pb-10 md:pt-16 md:pb-14 lg:px-10">
+      <section className="-mt-7 border-b border-[#ECE8E2] md:mt-0">
+        <div className="mx-auto max-w-7xl px-6 pt-6 pb-8 md:pt-16 md:pb-14 lg:px-10">
           <p className="text-[11px] font-normal uppercase tracking-[0.44em] text-neutral-500">
             Journal
           </p>
@@ -50,7 +50,7 @@ export default async function JournalPage() {
       </section>
 
       {posts.length > 0 ? (
-        <section className="mx-auto max-w-7xl px-6 pt-8 pb-12 md:py-16 lg:px-10">
+        <section className="mx-auto max-w-7xl px-6 pt-6 pb-12 md:py-16 lg:px-10">
           <JournalFeaturedPost post={posts[0]} />
 
           {posts.length > 1 ? (
