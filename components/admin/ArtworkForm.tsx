@@ -13,6 +13,7 @@ import {
 } from "@/lib/admin/actions";
 import { PRODUCT_STATUSES } from "@/lib/admin/product-constants";
 import type { ArtworkFormValues } from "@/lib/admin/artwork-form-defaults";
+import type { AdminProductDownloadFileSummary } from "@/lib/admin/product-download-files";
 import type { ProductDeliveryFileSummary } from "@/lib/admin/product-delivery";
 import {
   requestJson,
@@ -40,6 +41,7 @@ type ArtworkFormProps = {
   collections: Pick<CatalogCollectionRow, "id" | "slug" | "name">[];
   initialValues: ArtworkFormValues;
   initialDeliveryFile?: ProductDeliveryFileSummary;
+  initialDownloadFiles?: AdminProductDownloadFileSummary[];
   initialStripeStatus?: AdminProductStripeStatus;
 };
 
@@ -83,12 +85,42 @@ function slugifyTitle(title: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function formatDeliveryMimeLabel(mimeType: string | null | undefined): string {
+  const normalized = mimeType?.trim().toLowerCase() ?? "";
+
+  if (normalized === "image/png") {
+    return "PNG";
+  }
+
+  if (normalized === "image/jpeg") {
+    return "JPEG";
+  }
+
+  if (normalized === "image/webp") {
+    return "WebP";
+  }
+
+  if (normalized === "application/pdf") {
+    return "PDF";
+  }
+
+  if (
+    normalized === "application/zip" ||
+    normalized === "application/x-zip-compressed"
+  ) {
+    return "ZIP";
+  }
+
+  return mimeType?.trim() || "—";
+}
+
 export default function ArtworkForm({
   mode,
   productId,
   collections,
   initialValues,
   initialDeliveryFile,
+  initialDownloadFiles = [],
   initialStripeStatus,
 }: ArtworkFormProps) {
   const router = useRouter();
@@ -561,6 +593,8 @@ export default function ArtworkForm({
   const previewReady = Boolean(previewSource);
   const previewUploading = previewProgress !== null;
   const deliveryReady = deliveryFile.configured || Boolean(pendingDeliveryFile);
+  const hasMultiFileDownloads = initialDownloadFiles.length > 0;
+  const showLegacyDeliverySection = !hasMultiFileDownloads;
   const deliveryUploading = deliveryProgress !== null;
   const activeProductId = resolvedProductId || productId;
   const stripeReady = stripeStatus.configured && stripeStatus.inSync;
@@ -966,6 +1000,56 @@ export default function ArtworkForm({
         ) : null}
       </section>
 
+      {hasMultiFileDownloads ? (
+        <section className="space-y-6 border border-[#ECE8E2] bg-white p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-light tracking-[-0.02em]">
+                Download files
+              </h2>
+              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-neutral-600">
+                Private customer delivery assets stored in artwork-downloads.
+                Multi-file editions are managed through the catalog importer.
+              </p>
+            </div>
+            <AssetStatusBadge
+              label={`${initialDownloadFiles.length} file${initialDownloadFiles.length === 1 ? "" : "s"}`}
+              tone="ready"
+            />
+          </div>
+
+          <ul className="space-y-4">
+            {initialDownloadFiles.map((file) => (
+              <li
+                key={file.variantKey}
+                className="border border-[#ECE8E2] px-4 py-4"
+              >
+                <p className="text-[15px] text-[#111111]">{file.displayName}</p>
+                <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <dt className={labelClassName}>Filename</dt>
+                    <dd className="mt-2 text-[15px]">{file.filename}</dd>
+                  </div>
+                  <div>
+                    <dt className={labelClassName}>Format</dt>
+                    <dd className="mt-2 text-[15px]">
+                      {formatDeliveryMimeLabel(file.mimeType)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className={labelClassName}>Size</dt>
+                    <dd className="mt-2 text-[15px]">
+                      {formatUploadBytes(file.sizeBytes)}
+                    </dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {showLegacyDeliverySection ? (
       <section className="space-y-6 border border-[#ECE8E2] bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -1081,6 +1165,7 @@ export default function ArtworkForm({
           <UploadProgressBar percent={deliveryProgress} label="Uploading delivery file" />
         ) : null}
       </section>
+      ) : null}
 
       <div className="flex flex-col gap-4 border-t border-[#ECE8E2] pt-8 sm:flex-row">
         <button

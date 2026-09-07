@@ -7,6 +7,7 @@ import {
   getProductDeliveryFileSummary,
   listAdminCollections,
 } from "@/lib/admin/catalog";
+import { listAdminProductDownloadFileSummaries } from "@/lib/admin/product-download-files";
 import { getAdminProductStripeStatus } from "@/lib/admin/stripe-status";
 
 export const metadata: Metadata = {
@@ -29,6 +30,9 @@ export default async function AdminEditProductPage({ params }: PageProps) {
   }
 
   const initialStripeStatus = await getAdminProductStripeStatus(product);
+  const initialDownloadFiles = await listAdminProductDownloadFileSummaries(
+    product.id,
+  );
 
   return (
     <div>
@@ -60,6 +64,7 @@ export default async function AdminEditProductPage({ params }: PageProps) {
               storagePath: null,
             };
           })()}
+          initialDownloadFiles={initialDownloadFiles}
           initialStripeStatus={initialStripeStatus}
         />
       </div>
