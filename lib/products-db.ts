@@ -82,18 +82,24 @@ function formatCatalogFileType(fileType: string): string {
 }
 
 function resolveImageUrl(imageUrl: string): string {
-  if (!imageUrl) {
+  const trimmed = imageUrl.trim();
+
+  if (!trimmed) {
     return PRODUCT_FALLBACK_IMAGE;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
   }
 
   const publicPath = path.join(
     process.cwd(),
     "public",
-    imageUrl.replace(/^\//, ""),
+    trimmed.replace(/^\//, ""),
   );
 
   if (fs.existsSync(publicPath)) {
-    return imageUrl;
+    return trimmed;
   }
 
   return PRODUCT_FALLBACK_IMAGE;
@@ -348,9 +354,10 @@ async function fetchProductsFromDb(): Promise<Product[]> {
     ]);
 
   if (productsError || collectionsError || volumesError || !productsData) {
-    if (process.env.NODE_ENV === "development") {
-      console.error("[products-db] Failed to fetch products:", productsError ?? collectionsError ?? volumesError);
-    }
+    console.error(
+      "[products-db] Failed to fetch products:",
+      productsError ?? collectionsError ?? volumesError,
+    );
 
     return getFallbackProducts();
   }
