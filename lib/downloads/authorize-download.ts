@@ -5,6 +5,10 @@ import {
   linkPurchasesToAuthenticatedUser,
 } from "@/lib/auth";
 import { ELIGIBLE_ORDER_STATUSES } from "@/lib/downloads/constants";
+import {
+  getProductDownloadFileByVariant,
+  listProductDownloadFiles,
+} from "@/lib/downloads/product-download-files";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { EntitlementStatus, OrderStatus } from "@/types/database";
@@ -16,6 +20,7 @@ export type AuthorizedDownload = {
   storagePath: string;
   filename: string;
   mimeType: string | null;
+  variantKey: string | null;
 };
 
 export type DownloadAuthorizationFailure =
@@ -72,8 +77,13 @@ function isEligibleOrderStatus(status: OrderStatus): boolean {
   );
 }
 
+type AuthorizeProductDownloadOptions = {
+  variantKey?: string | null;
+};
+
 export async function authorizeProductDownload(
   productIdOrSlug: string,
+  options: AuthorizeProductDownloadOptions = {},
 ): Promise<
   | { ok: true; download: AuthorizedDownload }
   | { ok: false; reason: DownloadAuthorizationFailure }
@@ -91,6 +101,7 @@ export async function authorizeProductDownload(
   }
 
   const identifier = productIdOrSlug.trim();
+  const variantKey = options.variantKey?.trim() || null;
 
   if (!identifier) {
     return { ok: false, reason: "not_found" };
@@ -115,11 +126,6 @@ export async function authorizeProductDownload(
   }
 
   const product = productData as ProductDownloadRow;
-  const storagePath = product.download_storage_path?.trim();
-
-  if (!storagePath) {
-    return { ok: false, reason: "not_found" };
-  }
 
   const supabase = await createClient();
   const { data: entitlementRows, error: entitlementsError } = await supabase
@@ -156,9 +162,44 @@ export async function authorizeProductDownload(
     return { ok: false, reason: "forbidden" };
   }
 
+  if (variantKey) {
+    const downloadFile = await getProductDownloadFileByVariant(
+      product.id,
+      variantKey,
+    );
+
+    if (!downloadFile) {
+      return { ok: false, reason: "not_found" };
+    }
+
+    return {
+      ok: true,
+      download: {
+        userId: user.id,
+        productId: product.id,
+        entitlementId: entitlement.id,
+        storagePath: downloadFile.storage_path,
+        filename: downloadFile.filename,
+        mimeType: downloadFile.mime_type,
+        variantKey: downloadFile.variant_key,
+      },
+    };
+  }
+
+  const multiFiles = await listProductDownloadFiles(product.id);
+
+  if (multiFiles.length > 0) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  const storagePath = product.download_storage_path?.trim();
+
+  if (!storagePath) {
+    return { ok: false, reason: "not_found" };
+  }
+
   const filename =
-    product.download_filename?.trim() ||
-    `${product.slug}.zip`;
+    product.download_filename?.trim() || `${product.slug}.zip`;
 
   return {
     ok: true,
@@ -169,6 +210,7 @@ export async function authorizeProductDownload(
       storagePath,
       filename,
       mimeType: product.download_mime_type?.trim() || null,
+      variantKey: null,
     },
   };
 }

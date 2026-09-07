@@ -97,10 +97,29 @@ export default function ArtworkCard({ artwork }: ArtworkCardProps) {
             </span>
           )}
 
-          <SecureDownloadButton
-            productId={artwork.productId}
-            isDownloadReady={artwork.isDownloadReady}
-          />
+          {artwork.downloadFiles.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">
+                {artwork.downloadFiles.length} file
+                {artwork.downloadFiles.length === 1 ? "" : "s"} included
+              </p>
+              {artwork.downloadFiles.map((file) => (
+                <SecureDownloadButton
+                  key={file.variantKey}
+                  productId={artwork.productId}
+                  isDownloadReady={artwork.isDownloadReady}
+                  variantKey={file.variantKey}
+                  label={file.displayName}
+                  compact
+                />
+              ))}
+            </div>
+          ) : (
+            <SecureDownloadButton
+              productId={artwork.productId}
+              isDownloadReady={artwork.isDownloadReady}
+            />
+          )}
         </div>
       </div>
     </article>

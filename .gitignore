@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local catalog import artwork (masters stay on disk only)
+/catalog-import/*
+!/catalog-import/.gitkeep

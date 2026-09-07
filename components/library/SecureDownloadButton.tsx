@@ -5,6 +5,9 @@ import { useState } from "react";
 type SecureDownloadButtonProps = {
   productId: string | null;
   isDownloadReady: boolean;
+  variantKey?: string | null;
+  label?: string;
+  compact?: boolean;
 };
 
 type ButtonState = "idle" | "loading" | "error";
@@ -12,6 +15,9 @@ type ButtonState = "idle" | "loading" | "error";
 export default function SecureDownloadButton({
   productId,
   isDownloadReady,
+  variantKey = null,
+  label,
+  compact = false,
 }: SecureDownloadButtonProps) {
   const [state, setState] = useState<ButtonState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -32,7 +38,9 @@ export default function SecureDownloadButton({
       cache: "no-store",
       headers: {
         Accept: "application/json",
+        ...(variantKey ? { "Content-Type": "application/json" } : {}),
       },
+      body: variantKey ? JSON.stringify({ variantKey }) : undefined,
     });
 
     const payload = (await response.json()) as {
@@ -102,10 +110,16 @@ export default function SecureDownloadButton({
     }
   }
 
-  let label = "Download unavailable";
+  let buttonLabel = "Download unavailable";
 
   if (isDownloadReady && productId) {
-    label = state === "loading" ? "Preparing…" : "Download";
+    if (state === "loading") {
+      buttonLabel = "Preparing…";
+    } else if (label) {
+      buttonLabel = label;
+    } else {
+      buttonLabel = "Download";
+    }
   }
 
   return (
@@ -118,16 +132,30 @@ export default function SecureDownloadButton({
         aria-disabled={isDisabled}
         aria-label={
           isDownloadReady && productId
-            ? "Download your purchased edition"
+            ? label
+              ? `Download ${label}`
+              : "Download your purchased edition"
             : "Download unavailable"
         }
-        className="inline-flex w-full items-center justify-center border border-[#ECE8E2] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-neutral-500 transition-colors hover:border-[#111111] hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-80"
+        className={
+          compact
+            ? "inline-flex w-full items-center justify-between border border-[#ECE8E2] px-4 py-2.5 text-left text-[12px] tracking-[0.06em] text-[#111111] transition-colors hover:border-[#111111] disabled:cursor-not-allowed disabled:opacity-80"
+            : "inline-flex w-full items-center justify-center border border-[#ECE8E2] px-6 py-3 text-[11px] uppercase tracking-[0.18em] text-neutral-500 transition-colors hover:border-[#111111] hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-80"
+        }
       >
-        {label}
+        <span>{buttonLabel}</span>
+        {compact && isDownloadReady && productId && state !== "loading" ? (
+          <span className="text-[10px] uppercase tracking-[0.14em] text-neutral-400">
+            Download
+          </span>
+        ) : null}
       </button>
 
       {state === "error" && errorMessage ? (
-        <p className="mt-3 text-[13px] leading-6 text-neutral-600" role="alert">
+        <p
+          className={`${compact ? "mt-2" : "mt-3"} text-[13px] leading-6 text-neutral-600`}
+          role="alert"
+        >
           {errorMessage}
         </p>
       ) : null}

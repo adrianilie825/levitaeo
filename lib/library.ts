@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { PRODUCT_FALLBACK_IMAGE } from "@/lib/product-catalog";
+import { getProductDownloadAvailability } from "@/lib/downloads/product-download-files";
+import type { ProductDownloadFileSummary } from "@/lib/downloads/product-download-files";
 import { getProductCatalogPath } from "@/lib/products-db";
 import type {
   CatalogCollectionRow,
@@ -9,6 +11,8 @@ import type {
   EntitlementStatus,
   OrderStatus,
 } from "@/types/database";
+
+export type LibraryDownloadFile = ProductDownloadFileSummary;
 
 export type LibraryArtwork = {
   entitlementId: string;
@@ -27,6 +31,7 @@ export type LibraryArtwork = {
   orderStatus: OrderStatus;
   entitlementStatus: EntitlementStatus;
   isDownloadReady: boolean;
+  downloadFiles: LibraryDownloadFile[];
   detailPath: string | null;
 };
 
@@ -118,8 +123,18 @@ function buildLibraryArtwork(input: {
   orderItem: OrderItemQueryRow | undefined;
   product: ProductQueryRow | undefined;
   collection: Pick<CatalogCollectionRow, "slug" | "name"> | undefined;
+  downloadFiles: LibraryDownloadFile[];
+  hasLegacyDownload: boolean;
 }): LibraryArtwork {
-  const { entitlement, order, orderItem, product, collection } = input;
+  const {
+    entitlement,
+    order,
+    orderItem,
+    product,
+    collection,
+    downloadFiles,
+    hasLegacyDownload,
+  } = input;
   const slug = product?.slug ?? entitlement.product_slug ?? orderItem?.product_slug ?? "unknown-edition";
   const collectionName =
     collection?.name ??
@@ -149,10 +164,13 @@ function buildLibraryArtwork(input: {
     entitlement.granted_at;
   const resolvedProductId =
     entitlement.product_id ?? product?.id ?? orderItem?.product_id ?? null;
+  const hasDownloadAssets =
+    hasLegacyDownload || downloadFiles.length > 0;
   const isDownloadReady =
     entitlement.status === "active" &&
     order?.status === "paid" &&
-    Boolean(resolvedProductId);
+    Boolean(resolvedProductId) &&
+    hasDownloadAssets;
 
   return {
     entitlementId: entitlement.id,
@@ -171,6 +189,7 @@ function buildLibraryArtwork(input: {
     orderStatus: order?.status ?? "paid",
     entitlementStatus: entitlement.status,
     isDownloadReady,
+    downloadFiles,
     detailPath: isPublicProductStatus(product?.status)
       ? getProductCatalogPath(slug, collectionSlug)
       : null,
@@ -422,6 +441,38 @@ export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
     productsBySlug.set(row.slug, row);
   }
 
+  const resolvedProductIds = [
+    ...new Set(
+      entitlements
+        .map((entitlement) => {
+          const orderItem = orderItemsById.get(entitlement.order_item_id);
+          const product =
+            (entitlement.product_id
+              ? productsById.get(entitlement.product_id)
+              : undefined) ??
+            productsBySlug.get(entitlement.product_slug) ??
+            (orderItem?.product_id
+              ? productsById.get(orderItem.product_id)
+              : undefined) ??
+            (orderItem?.product_slug
+              ? productsBySlug.get(orderItem.product_slug)
+              : undefined);
+
+          return (
+            entitlement.product_id ??
+            product?.id ??
+            orderItem?.product_id ??
+            null
+          );
+        })
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+
+  const downloadAvailability = await getProductDownloadAvailability(
+    resolvedProductIds,
+  );
+
   const artworks = entitlements.map((entitlement) => {
     const orderItem = orderItemsById.get(entitlement.order_item_id);
     const product =
@@ -440,12 +491,23 @@ export async function getCurrentUserLibrary(): Promise<UserLibrary | null> {
       ? collectionsById.get(product.collection_id)
       : undefined;
 
+    const resolvedProductId =
+      entitlement.product_id ??
+      product?.id ??
+      orderItem?.product_id ??
+      null;
+    const availability = resolvedProductId
+      ? downloadAvailability.get(resolvedProductId)
+      : undefined;
+
     return buildLibraryArtwork({
       entitlement,
       order: ordersById.get(entitlement.order_id),
       orderItem,
       product,
       collection,
+      downloadFiles: availability?.files ?? [],
+      hasLegacyDownload: availability?.hasLegacyDownload ?? false,
     });
   });
 
