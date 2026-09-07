@@ -98,6 +98,9 @@ export type CatalogProductRow = {
   download_mime_type: string | null;
   download_size_bytes: number | null;
   download_version: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  preview_alt_text: string | null;
   created_at: string;
 };
 

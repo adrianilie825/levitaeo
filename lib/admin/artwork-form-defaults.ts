@@ -19,6 +19,9 @@ export type ArtworkFormValues = {
   is_featured: boolean;
   stripe_price_id: string;
   sort_order: string;
+  seo_title: string;
+  seo_description: string;
+  preview_alt_text: string;
 };
 
 export function productRowToFormValues(
@@ -28,6 +31,9 @@ export function productRowToFormValues(
     title: string;
     subtitle: string;
     description: string;
+    seo_title: string | null;
+    seo_description: string | null;
+    preview_alt_text: string | null;
     price_cents: number;
     currency: string;
     image_url: string;
@@ -48,6 +54,9 @@ export function productRowToFormValues(
     slug: product.slug,
     subtitle: product.subtitle,
     description: product.description,
+    seo_title: product.seo_title ?? "",
+    seo_description: product.seo_description ?? "",
+    preview_alt_text: product.preview_alt_text ?? "",
     collection_id: product.collection_id,
     collection_slug: product.collections?.slug ?? defaultCollectionSlug,
     price: formatCentsToPriceInput(product.price_cents),
@@ -74,6 +83,9 @@ export function emptyArtworkFormValues(
     slug: "",
     subtitle: "",
     description: "",
+    seo_title: "",
+    seo_description: "",
+    preview_alt_text: "",
     collection_id: firstCollection?.id ?? "",
     collection_slug: firstCollection?.slug ?? "originals",
     price: "0.00",

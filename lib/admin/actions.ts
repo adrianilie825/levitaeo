@@ -49,6 +49,9 @@ function readProductInput(formData: FormData): {
   const slug = normalizeSlug(String(formData.get("slug") ?? ""));
   const subtitle = String(formData.get("subtitle") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
+  const seoTitle = String(formData.get("seo_title") ?? "").trim();
+  const seoDescription = String(formData.get("seo_description") ?? "").trim();
+  const previewAltText = String(formData.get("preview_alt_text") ?? "").trim();
   const collectionId = String(formData.get("collection_id") ?? "").trim();
   const collectionSlug = String(formData.get("collection_slug") ?? "").trim();
   const priceInput = String(formData.get("price") ?? "").trim();
@@ -111,6 +114,9 @@ function readProductInput(formData: FormData): {
       title,
       subtitle,
       description,
+      seo_title: seoTitle || null,
+      seo_description: seoDescription || null,
+      preview_alt_text: previewAltText || null,
       price_cents: priceCents ?? 0,
       currency,
       image_url: imageUrl,

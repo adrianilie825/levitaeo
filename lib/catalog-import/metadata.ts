@@ -38,6 +38,12 @@ export type ProductJson = {
   file_type?: string;
   sort_order?: number;
   display_names?: Record<string, string>;
+  seoTitle?: string;
+  seoDescription?: string;
+  altText?: string;
+  seo_title?: string;
+  seo_description?: string;
+  preview_alt_text?: string;
 };
 
 export type ResolvedProductMetadata = {
@@ -52,8 +58,16 @@ export type ResolvedProductMetadata = {
   fileType: string;
   status: typeof DEFAULT_IMPORT_STATUS;
   sortOrder: number;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  previewAltText: string | null;
   variantDisplayNames: Map<string, string>;
 };
+
+function readOptionalText(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
 
 function parsePriceToCents(value: string | number | undefined): number | null {
   if (value == null) {
@@ -156,6 +170,13 @@ export function resolveProductMetadata(
       typeof merged.sort_order === "number" && Number.isFinite(merged.sort_order)
         ? merged.sort_order
         : 0,
+    seoTitle: readOptionalText(merged.seoTitle ?? merged.seo_title),
+    seoDescription: readOptionalText(
+      merged.seoDescription ?? merged.seo_description,
+    ),
+    previewAltText: readOptionalText(
+      merged.altText ?? merged.preview_alt_text,
+    ),
     variantDisplayNames,
   };
 }

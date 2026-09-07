@@ -1,3 +1,4 @@
+import { resolveProductPreviewAltText } from "@/lib/products/product-seo";
 import type { Product } from "@/types/product";
 
 export type ArtworkMetadataItem = {
@@ -113,6 +114,8 @@ export function getArtworkDescriptionParagraphs(description?: string): string[] 
     .filter((paragraph) => paragraph.length > 0);
 }
 
-export function getArtworkImageAlt(product: Pick<Product, "title" | "collection">): string {
-  return `${product.title} — ${product.collection} digital artwork by Levitaeo`;
+export function getArtworkImageAlt(
+  product: Pick<Product, "title" | "collection" | "previewAltText">,
+): string {
+  return resolveProductPreviewAltText(product);
 }

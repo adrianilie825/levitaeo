@@ -96,6 +96,9 @@ export async function createImportProduct(
       file_type: metadata.fileType,
       status: DEFAULT_IMPORT_STATUS,
       sort_order: metadata.sortOrder,
+      seo_title: metadata.seoTitle,
+      seo_description: metadata.seoDescription,
+      preview_alt_text: metadata.previewAltText,
       image_url: "",
       thumbnail_url: "",
       is_featured: false,
@@ -131,6 +134,9 @@ export async function updateImportProduct(
       resolution: metadata.resolution,
       file_type: metadata.fileType,
       sort_order: metadata.sortOrder,
+      seo_title: metadata.seoTitle,
+      seo_description: metadata.seoDescription,
+      preview_alt_text: metadata.previewAltText,
     })
     .eq("id", productId)
     .select("*")

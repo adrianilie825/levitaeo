@@ -22,9 +22,12 @@ import {
   getProductsByCollection,
   getProductsByVolume,
 } from "@/lib/products-db";
+import {
+  resolveProductMetaDescription,
+  resolveProductPageTitle,
+} from "@/lib/products/product-seo";
 import { userOwnsActiveProduct } from "@/lib/purchases/ownership";
 import { collectionPageJsonLd, createPageMetadata } from "@/lib/seo";
-import { siteConfig } from "@/lib/site";
 
 export const revalidate = 300;
 
@@ -91,13 +94,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const description =
-    product.description?.trim() ||
-    product.subtitle?.trim() ||
-    siteConfig.description;
+  const description = resolveProductMetaDescription(product);
 
   return createPageMetadata({
-    title: product.title,
+    title: resolveProductPageTitle(product),
     description,
     path: getProductPath(product),
     image: product.image,
