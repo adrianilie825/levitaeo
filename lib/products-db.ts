@@ -59,6 +59,9 @@ type DbProductRow = {
   is_featured: boolean;
   stripe_price_id: string | null;
   sort_order: number;
+  seo_title: string | null;
+  seo_description: string | null;
+  preview_alt_text: string | null;
   created_at: string;
   collections: DbCollectionRow | DbCollectionRow[] | null;
   volumes?: DbVolumeRow | DbVolumeRow[] | null;
@@ -140,6 +143,9 @@ function mapDbProduct(row: DbProductRow): Product {
     currency: row.currency.toUpperCase() === "EUR" ? "EUR" : "EUR",
     image: resolveImageUrl(row.image_url),
     description: row.description,
+    seoTitle: row.seo_title,
+    seoDescription: row.seo_description,
+    previewAltText: row.preview_alt_text,
     status: productStatus,
     availabilityText:
       productStatus === "available" ? "Available now" : "Coming soon",
@@ -226,7 +232,7 @@ async function fetchProductBySlugFromDb(
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, created_at",
+      "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, seo_title, seo_description, preview_alt_text, created_at",
     )
     .eq("slug", normalizedSlug)
     .in("status", ["published", "coming_soon"])
@@ -329,7 +335,7 @@ async function fetchProductsFromDb(): Promise<Product[]> {
       supabase
         .from("products")
         .select(
-          "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, created_at",
+          "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, seo_title, seo_description, preview_alt_text, created_at",
         )
         .in("status", ["published", "coming_soon"])
         .order("sort_order", { ascending: true }),

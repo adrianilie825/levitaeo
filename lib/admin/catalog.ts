@@ -48,6 +48,9 @@ export type ProductWriteInput = {
   status: string;
   is_featured: boolean;
   sort_order: number;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  preview_alt_text?: string | null;
 };
 
 export type ProductStripeIdsInput = {
@@ -107,6 +110,9 @@ export async function listAdminProducts(
         download_mime_type,
         download_size_bytes,
         download_version,
+        seo_title,
+        seo_description,
+        preview_alt_text,
         created_at
       `,
     )
@@ -198,6 +204,9 @@ export async function getAdminProductById(
         download_mime_type,
         download_size_bytes,
         download_version,
+        seo_title,
+        seo_description,
+        preview_alt_text,
         created_at
       `,
     )

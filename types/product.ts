@@ -18,6 +18,9 @@ export type Product = {
   currency: "EUR";
   image: string;
   description: string;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  previewAltText?: string | null;
   status: ProductStatus;
   availabilityText: string;
   fileType: string;

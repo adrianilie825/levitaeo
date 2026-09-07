@@ -700,6 +700,76 @@ export default function ArtworkForm({
         </div>
       </section>
 
+      <section className="space-y-6 border border-[#ECE8E2] bg-white p-6">
+        <div>
+          <h2 className="text-xl font-light tracking-[-0.02em]">SEO</h2>
+          <p className="mt-3 max-w-2xl text-[14px] leading-6 text-neutral-600">
+            Optional overrides for search and social sharing. Leave empty to use
+            the product title, description, and generated preview alt text.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="seo_title" className={labelClassName}>
+            SEO title
+          </label>
+          <input
+            id="seo_title"
+            name="seo_title"
+            value={values.seo_title}
+            onChange={(event) => updateField("seo_title", event.target.value)}
+            className={inputClassName}
+            placeholder="Optional page title override"
+          />
+          <p className="mt-2 text-[13px] leading-6 text-neutral-500">
+            Recommended up to 60 characters. Appends &ldquo;| Levitaeo&rdquo; when
+            rendered unless you include it here.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="seo_description" className={labelClassName}>
+            SEO description
+          </label>
+          <textarea
+            id="seo_description"
+            name="seo_description"
+            rows={3}
+            value={values.seo_description}
+            onChange={(event) =>
+              updateField("seo_description", event.target.value)
+            }
+            className={`${inputClassName} resize-y`}
+            placeholder="Optional meta description override"
+          />
+          <p className="mt-2 text-[13px] leading-6 text-neutral-500">
+            Recommended up to 160 characters. Falls back to the product
+            description when empty.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="preview_alt_text" className={labelClassName}>
+            Preview image alt text
+          </label>
+          <textarea
+            id="preview_alt_text"
+            name="preview_alt_text"
+            rows={3}
+            value={values.preview_alt_text}
+            onChange={(event) =>
+              updateField("preview_alt_text", event.target.value)
+            }
+            className={`${inputClassName} resize-y`}
+            placeholder="Describe the preview image for accessibility and search."
+          />
+          <p className="mt-2 text-[13px] leading-6 text-neutral-500">
+            Describe what appears in the preview image, not just the product
+            title.
+          </p>
+        </div>
+      </section>
+
       <section className="grid gap-8 md:grid-cols-2">
         <div>
           <label htmlFor="price" className={labelClassName}>
@@ -939,7 +1009,7 @@ export default function ArtworkForm({
           <div className="relative aspect-[4/3] max-w-xs overflow-hidden border border-[#ECE8E2] bg-[#FAFAF8]">
             <Image
               src={previewSource}
-              alt=""
+              alt={values.preview_alt_text.trim() || "Preview"}
               fill
               sizes="320px"
               className="object-cover"
