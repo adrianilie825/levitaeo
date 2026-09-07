@@ -1,5 +1,7 @@
 import fs from "fs";
+import path from "path";
 import type { CatalogImportVariant } from "@/lib/catalog-import/constants";
+import { applyAssetDerivedTechnicalMetadata } from "@/lib/catalog-import/asset-metadata";
 import { validateUploadBuffer } from "@/lib/downloads/upload-validation";
 import type { DiscoveredProductFolder } from "@/lib/catalog-import/discover";
 import {
@@ -12,7 +14,9 @@ import {
   getVariantDisplayName,
   resolveProductMetadata,
   validateResolvedMetadata,
+  type ProductJson,
 } from "@/lib/catalog-import/metadata";
+import { readJsonFile } from "@/lib/catalog-import/paths";
 import { resolveProductVariantSources } from "@/lib/catalog-import/resolve-source";
 
 export type ValidatedImportAsset = {
@@ -114,11 +118,20 @@ export function validateProductImport(
     return { ok: false, errors };
   }
 
+  const productJson = readJsonFile<ProductJson>(
+    path.join(folder.absolutePath, "product.json"),
+  );
+  const enrichedMetadata = applyAssetDerivedTechnicalMetadata(
+    metadata,
+    assets,
+    productJson,
+  );
+
   return {
     ok: true,
     value: {
       folder,
-      metadata,
+      metadata: enrichedMetadata,
       assets,
       printMasterWarnings,
     },

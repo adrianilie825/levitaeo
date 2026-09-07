@@ -18,6 +18,7 @@ import {
   uploadPrivateDeliveryFile,
   uploadPublicPreviewFile,
 } from "@/lib/catalog-import/storage";
+import { selectPrimaryImportAsset } from "@/lib/catalog-import/asset-metadata";
 import type { ValidatedProductImport } from "@/lib/catalog-import/validate";
 
 export type ImportProductResult = {
@@ -29,10 +30,7 @@ export type ImportProductResult = {
 };
 
 function getPreviewAsset(importData: ValidatedProductImport) {
-  return (
-    importData.assets.find((asset) => asset.variant.key === "color") ??
-    importData.assets[0]
-  );
+  return selectPrimaryImportAsset(importData.assets);
 }
 
 export async function importValidatedProduct(

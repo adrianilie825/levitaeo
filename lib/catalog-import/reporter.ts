@@ -27,6 +27,8 @@ export function printValidatedProduct(input: {
   title: string;
   slug: string;
   dryRun: boolean;
+  resolution: string;
+  fileType: string;
   assets: ValidatedImportAsset[];
   printMasterWarnings: string[];
 }): void {
@@ -38,6 +40,9 @@ export function printValidatedProduct(input: {
     console.log(`${input.title}`);
     console.log(`  slug: ${input.slug}`);
   }
+
+  console.log(`  resolution: ${input.resolution}`);
+  console.log(`  file type: ${input.fileType}`);
 
   for (const asset of input.assets) {
     console.log(formatAssetLine(asset));
@@ -58,6 +63,8 @@ export function printValidatedProduct(input: {
 export function printProductDryRun(input: {
   title: string;
   slug: string;
+  resolution: string;
+  fileType: string;
   assets: ValidatedImportAsset[];
   printMasterWarnings: string[];
 }): void {
