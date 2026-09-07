@@ -46,6 +46,33 @@ export type JournalPostRow = {
   updated_at: string;
 };
 
+export type ProductDownloadFileRow = {
+  id: string;
+  product_id: string;
+  variant_key: string;
+  display_name: string;
+  storage_path: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  version: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProductDownloadFileInsert = {
+  product_id: string;
+  variant_key: string;
+  display_name: string;
+  storage_path: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  version: string;
+  sort_order?: number;
+};
+
 export type CatalogProductRow = {
   id: string;
   collection_id: string;
@@ -299,6 +326,12 @@ export type Database = {
         Row: DownloadEventRow;
         Insert: DownloadEventInsert;
         Update: Partial<DownloadEventInsert>;
+        Relationships: [];
+      };
+      product_download_files: {
+        Row: ProductDownloadFileRow;
+        Insert: ProductDownloadFileInsert;
+        Update: Partial<ProductDownloadFileInsert>;
         Relationships: [];
       };
       journal_posts: {

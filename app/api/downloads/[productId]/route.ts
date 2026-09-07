@@ -43,6 +43,19 @@ export async function POST(request: Request, context: RouteContext) {
   const userAgent = request.headers.get("user-agent");
   const ipAddress = getClientIp(request);
 
+  let variantKey: string | null = null;
+
+  try {
+    const contentType = request.headers.get("content-type") ?? "";
+
+    if (contentType.includes("application/json")) {
+      const body = (await request.json()) as { variantKey?: string };
+      variantKey = body.variantKey?.trim() || null;
+    }
+  } catch {
+    variantKey = null;
+  }
+
   if (!user) {
     return noStoreJson({ error: DOWNLOAD_UNAVAILABLE_MESSAGE }, 401);
   }
@@ -67,7 +80,9 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const authorization = await authorizeProductDownload(productId);
+  const authorization = await authorizeProductDownload(productId, {
+    variantKey,
+  });
 
   if (!authorization.ok) {
     const outcome =
