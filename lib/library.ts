@@ -24,6 +24,7 @@ export type LibraryArtwork = {
   collectionSlug: string;
   imageUrl: string;
   thumbnailUrl: string;
+  previewAltText: string;
   edition: string;
   resolution: string;
   fileType: string;
@@ -78,10 +79,11 @@ type ProductQueryRow = Pick<
   | "resolution"
   | "file_type"
   | "status"
+  | "preview_alt_text"
 >;
 
 const LIBRARY_PRODUCT_COLUMNS =
-  "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status" as const;
+  "id, slug, title, subtitle, collection_id, image_url, thumbnail_url, edition, resolution, file_type, status, preview_alt_text" as const;
 const DEFAULT_RESOLUTION = "High resolution";
 const DEFAULT_FILE_TYPE = "Digital edition";
 
@@ -182,6 +184,7 @@ function buildLibraryArtwork(input: {
     collectionSlug,
     imageUrl,
     thumbnailUrl: imageUrl,
+    previewAltText: product?.preview_alt_text?.trim() || title,
     edition,
     resolution: product?.resolution?.trim() || DEFAULT_RESOLUTION,
     fileType: product?.file_type?.trim() || DEFAULT_FILE_TYPE,

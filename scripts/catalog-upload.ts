@@ -66,6 +66,8 @@ async function main() {
         printProductDryRun({
           title: validated.value.metadata.title,
           slug: validated.value.metadata.slug,
+          resolution: validated.value.metadata.resolution,
+          fileType: validated.value.metadata.fileType,
           assets: validated.value.assets,
           printMasterWarnings: validated.value.printMasterWarnings,
         });
@@ -80,6 +82,8 @@ async function main() {
         title: validated.value.metadata.title,
         slug: validated.value.metadata.slug,
         dryRun: false,
+        resolution: validated.value.metadata.resolution,
+        fileType: validated.value.metadata.fileType,
         assets: validated.value.assets,
         printMasterWarnings: validated.value.printMasterWarnings,
       });
