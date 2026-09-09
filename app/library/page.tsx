@@ -76,7 +76,7 @@ export default async function LibraryPage() {
             {artworks.length === 0 ? (
               <EmptyLibrary />
             ) : (
-              <div className="flex flex-col gap-12">
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
                 {artworks.map((artwork) => (
                   <ArtworkCard key={artwork.entitlementId} artwork={artwork} />
                 ))}
