@@ -31,4 +31,5 @@ export type Product = {
   downloadable?: boolean;
   stripePriceId?: string | null;
   isFeatured?: boolean;
+  membershipEligible?: boolean;
 };

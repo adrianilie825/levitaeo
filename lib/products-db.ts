@@ -62,6 +62,7 @@ type DbProductRow = {
   seo_title: string | null;
   seo_description: string | null;
   preview_alt_text: string | null;
+  membership_eligible: boolean;
   created_at: string;
   collections: DbCollectionRow | DbCollectionRow[] | null;
   volumes?: DbVolumeRow | DbVolumeRow[] | null;
@@ -164,6 +165,7 @@ function mapDbProduct(row: DbProductRow): Product {
     stripePriceId: row.stripe_price_id,
     collectionSlug,
     isFeatured: row.is_featured,
+    membershipEligible: row.membership_eligible,
   };
 }
 
@@ -238,7 +240,7 @@ async function fetchProductBySlugFromDb(
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, seo_title, seo_description, preview_alt_text, created_at",
+      "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, seo_title, seo_description, preview_alt_text, membership_eligible, created_at",
     )
     .eq("slug", normalizedSlug)
     .in("status", ["published", "coming_soon"])
@@ -341,7 +343,7 @@ async function fetchProductsFromDb(): Promise<Product[]> {
       supabase
         .from("products")
         .select(
-          "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, seo_title, seo_description, preview_alt_text, created_at",
+          "id, collection_id, volume_id, slug, title, subtitle, description, price_cents, currency, image_url, thumbnail_url, edition, resolution, file_type, status, is_featured, stripe_price_id, sort_order, seo_title, seo_description, preview_alt_text, membership_eligible, created_at",
         )
         .in("status", ["published", "coming_soon"])
         .order("sort_order", { ascending: true }),
