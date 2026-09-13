@@ -8,6 +8,20 @@ import {
   recordPaidCheckoutSession,
   recordPendingCheckoutSession,
 } from "@/lib/orders";
+import {
+  MembershipPersistenceError,
+  MembershipValidationError,
+} from "@/lib/membership/errors";
+import {
+  handleMembershipCheckoutSessionCompleted,
+  handleMembershipInvoiceEvent,
+  handleMembershipSubscriptionEvent,
+} from "@/lib/membership/webhook-handlers";
+import {
+  isDigitalArtworkPaymentSession,
+  isMembershipCheckoutSession,
+  retrieveMembershipCheckoutSession,
+} from "@/lib/membership/sync-from-stripe";
 import { getStripe } from "@/lib/stripe";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import type { CheckoutStatusResult, FulfillmentResult } from "@/types/database";
@@ -370,6 +384,15 @@ export async function POST(request: Request) {
     eventType: event.type,
   });
 
+  const membershipLogger = {
+    info: (message: string, extra?: Record<string, unknown>) => {
+      logWebhookInfo(message, {
+        eventId: event.id,
+        eventType: event.type,
+      }, extra);
+    },
+  };
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -382,6 +405,47 @@ export async function POST(request: Request) {
         }, {
           payload: summarizeCheckoutSession(session),
         });
+
+        if (session.mode === "subscription") {
+          if (!isMembershipCheckoutSession(session)) {
+            logWebhookInfo(
+              "Ignoring non-membership subscription checkout session.",
+              {
+                eventId: event.id,
+                eventType: event.type,
+                sessionId: session.id,
+              },
+            );
+            break;
+          }
+
+          const expandedSession = await retrieveMembershipCheckoutSession(
+            session.id,
+          );
+
+          await handleMembershipCheckoutSessionCompleted(
+            expandedSession,
+            {
+              eventId: event.id,
+              eventType: event.type,
+              sessionId: session.id,
+            },
+            membershipLogger,
+          );
+          break;
+        }
+
+        if (!isDigitalArtworkPaymentSession(session)) {
+          logWebhookInfo("Ignoring unsupported checkout session mode.", {
+            eventId: event.id,
+            eventType: event.type,
+            sessionId: session.id,
+          }, {
+            mode: session.mode,
+            purchaseType: session.metadata?.purchaseType ?? null,
+          });
+          break;
+        }
 
         const expandedSession = await retrieveCheckoutSession(session.id, {
           eventId: event.id,
@@ -408,6 +472,17 @@ export async function POST(request: Request) {
           payload: summarizeCheckoutSession(session),
         });
 
+        if (!isDigitalArtworkPaymentSession(session)) {
+          logWebhookInfo("Ignoring non-payment checkout session.", {
+            eventId: event.id,
+            eventType: event.type,
+            sessionId: session.id,
+          }, {
+            mode: session.mode,
+          });
+          break;
+        }
+
         const expandedSession = await retrieveCheckoutSession(session.id, {
           eventId: event.id,
           eventType: event.type,
@@ -426,6 +501,17 @@ export async function POST(request: Request) {
         }, {
           payload: summarizeCheckoutSession(session),
         });
+
+        if (!isDigitalArtworkPaymentSession(session)) {
+          logWebhookInfo("Ignoring non-payment checkout session.", {
+            eventId: event.id,
+            eventType: event.type,
+            sessionId: session.id,
+          }, {
+            mode: session.mode,
+          });
+          break;
+        }
 
         const expandedSession = await retrieveCheckoutSession(session.id, {
           eventId: event.id,
@@ -446,12 +532,52 @@ export async function POST(request: Request) {
           payload: summarizeCheckoutSession(session),
         });
 
+        if (!isDigitalArtworkPaymentSession(session)) {
+          logWebhookInfo("Ignoring non-payment checkout session.", {
+            eventId: event.id,
+            eventType: event.type,
+            sessionId: session.id,
+          }, {
+            mode: session.mode,
+          });
+          break;
+        }
+
         const expandedSession = await retrieveCheckoutSession(session.id, {
           eventId: event.id,
           eventType: event.type,
           sessionId: session.id,
         });
         await handleExpiredCheckoutSession(event, expandedSession);
+        break;
+      }
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+
+        await handleMembershipSubscriptionEvent(
+          subscription,
+          {
+            eventId: event.id,
+            eventType: event.type,
+          },
+          membershipLogger,
+        );
+        break;
+      }
+      case "invoice.paid":
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+
+        await handleMembershipInvoiceEvent(
+          invoice,
+          {
+            eventId: event.id,
+            eventType: event.type,
+          },
+          membershipLogger,
+        );
         break;
       }
       default:
@@ -467,7 +593,10 @@ export async function POST(request: Request) {
       eventType: event.type,
     };
 
-    if (error instanceof OrderValidationError) {
+    if (
+      error instanceof OrderValidationError ||
+      error instanceof MembershipValidationError
+    ) {
       logWebhookError(
         "Checkout validation failed; acknowledging event without retry.",
         error,
@@ -484,6 +613,16 @@ export async function POST(request: Request) {
         500,
         "Webhook order persistence failed.",
         "order_persistence_failed",
+      );
+    }
+
+    if (error instanceof MembershipPersistenceError) {
+      logWebhookError("Membership persistence failed.", error, context);
+
+      return webhookErrorResponse(
+        500,
+        "Webhook membership persistence failed.",
+        "membership_persistence_failed",
       );
     }
 
