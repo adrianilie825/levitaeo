@@ -8,6 +8,16 @@ export type OrderStatus =
 
 export type EntitlementStatus = "active" | "revoked" | "refunded";
 
+export type MembershipSubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "unpaid"
+  | "incomplete"
+  | "incomplete_expired"
+  | "paused";
+
 export type CatalogCollectionRow = {
   id: string;
   slug: string;
@@ -101,7 +111,29 @@ export type CatalogProductRow = {
   seo_title: string | null;
   seo_description: string | null;
   preview_alt_text: string | null;
+  membership_eligible: boolean;
   created_at: string;
+};
+
+export type UserBillingRow = {
+  user_id: string;
+  stripe_customer_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MembershipSubscriptionRow = {
+  id: string;
+  user_id: string;
+  stripe_subscription_id: string;
+  stripe_price_id: string;
+  status: MembershipSubscriptionStatus;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type DownloadEventRow = {
@@ -343,6 +375,18 @@ export type Database = {
         Update: Partial<JournalPostRow>;
         Relationships: [];
       };
+      user_billing: {
+        Row: UserBillingRow;
+        Insert: Partial<UserBillingRow>;
+        Update: Partial<UserBillingRow>;
+        Relationships: [];
+      };
+      membership_subscriptions: {
+        Row: MembershipSubscriptionRow;
+        Insert: Partial<MembershipSubscriptionRow>;
+        Update: Partial<MembershipSubscriptionRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -420,6 +464,7 @@ export type Database = {
     Enums: {
       order_status: OrderStatus;
       entitlement_status: EntitlementStatus;
+      membership_subscription_status: MembershipSubscriptionStatus;
     };
     CompositeTypes: Record<string, never>;
   };
